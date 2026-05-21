@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       !t.completed && t.assignee_section?.name?.trim() === PRIO_SECTION_NAME
     );
 
-    return res.status(200).json({ tasks: prioTasks, debug_sections: sectionNames });
+    return res.status(200).json({ tasks: prioTasks });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
