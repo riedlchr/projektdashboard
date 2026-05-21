@@ -170,6 +170,25 @@
   .termine-date.due-soon { color: #d97706; }
   .termine-name { font-size: 13px; color: #111; line-height: 1.4; }
 
+
+  /* Quick Todo */
+  .todo-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .todo-input { flex: 1; font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 7px 12px; font-family: inherit; color: #111; outline: none; background: #fff; transition: border-color 0.15s; }
+  .todo-input:focus { border-color: #9ca3af; }
+  .todo-input::placeholder { color: #d1d5db; }
+  .todo-add-btn { padding: 7px 14px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 13px; font-family: inherit; font-weight: 600; flex-shrink: 0; }
+  .todo-add-btn:hover { background: #374151; }
+  .todo-items { display: flex; flex-wrap: wrap; gap: 8px; }
+  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 13px; flex: 1 1 200px; min-width: 160px; max-width: 280px; display: flex; align-items: flex-start; gap: 8px; transition: box-shadow 0.15s; }
+  .todo-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .todo-cb { width: 14px; height: 14px; border: 1.5px solid #d1d5db; border-radius: 50%; flex-shrink: 0; margin-top: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: #fff; }
+  .todo-cb:hover { border-color: #16a34a; }
+  .todo-cb.completing { border-color: #16a34a; background: #16a34a; }
+  .todo-cb-check { display: none; color: #fff; font-size: 8px; font-weight: 700; }
+  .todo-cb.completing .todo-cb-check { display: block; }
+  .todo-label { font-size: 13px; color: #374151; line-height: 1.4; flex: 1; }
+  .todo-label.done { text-decoration: line-through; color: #9ca3af; }
+  .todo-empty { font-size: 13px; color: #d1d5db; padding: 8px 0; }
   /* Login */
   .login-screen { max-width: 680px; margin: 80px auto; padding: 0 20px; text-align: center; }
   .login-screen h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 10px; }
@@ -231,6 +250,21 @@
 
     <hr class="section-divider">
 
+    <!-- Quick Todo -->
+    <div class="asana-section">
+      <div class="asana-section-header">
+        <div class="asana-section-left">
+          <div class="asana-section-title">Schnelle To-dos</div>
+        </div>
+        <div class="asana-status" id="todo-count"></div>
+      </div>
+      <div class="todo-input-row">
+        <input class="todo-input" id="todo-input" placeholder="Aufgabe eingeben und Enter drücken…" onkeydown="todoKeydown(event)" />
+        <button class="todo-add-btn" onclick="addTodo()">+ Hinzufügen</button>
+      </div>
+      <div class="todo-items" id="todo-items"></div>
+    </div>
+    <hr class="section-divider">
     <!-- Filters + Projects -->
     <div class="filters" id="filters"></div>
     <div class="projects" id="projects"></div>
@@ -382,6 +416,7 @@ function showApp() {
   document.getElementById("app").style.display = "";
   loadAsanaTasks();
   loadTermine();
+  loadTodosFromDrive();
 }
 
 // ── Sync ──────────────────────────────────────────────────────
@@ -684,7 +719,85 @@ async function loadTermine(manual=false) {
   } catch(e) {
     statusEl.textContent="Fehler"; listEl.innerHTML=`<div class="asana-empty">Konnte nicht geladen werden.</div>`;
   }
+
   if(manual&&btn) setTimeout(()=>btn.classList.remove("spinning"),600);
+}
+
+// ── Quick Todos (Google Drive) ────────────────────────────────
+const TODO_FILE = "quick_todos.json";
+let todos = [];
+let todoFileId = null;
+let todoSaveTimer = null;
+
+async function loadTodosFromDrive() {
+  try {
+    const res = await driveRequest("GET",
+      "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27"+TODO_FILE+"%27&fields=files(id)");
+    const data = await res.json();
+    if (data.files && data.files.length) {
+      todoFileId = data.files[0].id;
+      const r = await driveRequest("GET", "https://www.googleapis.com/drive/v3/files/"+todoFileId+"?alt=media");
+      todos = await r.json();
+    } else {
+      todos = [];
+      todoFileId = await createTodoFile([]);
+    }
+  } catch(e) {
+    todos = [];
+  }
+  renderTodos();
+}
+
+async function createTodoFile(content) {
+  const meta = { name: TODO_FILE, parents: ["appDataFolder"] };
+  const form = new FormData();
+  form.append("metadata", new Blob([JSON.stringify(meta)], { type: "application/json" }));
+  form.append("file", new Blob([JSON.stringify(content)], { type: "application/json" }));
+  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+    { method: "POST", headers: { Authorization: "Bearer "+accessToken }, body: form });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()).id;
+}
+
+function scheduleTodoSave() {
+  clearTimeout(todoSaveTimer);
+  todoSaveTimer = setTimeout(async () => {
+    try {
+      if (!todoFileId) todoFileId = await createTodoFile(todos);
+      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+todoFileId+"?uploadType=media",
+        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(todos) });
+    } catch(e) {}
+  }, 1000);
+}
+
+function renderTodos() {
+  const el = document.getElementById("todo-items");
+  const countEl = document.getElementById("todo-count");
+  if (!el) return;
+  if (countEl) countEl.textContent = todos.length ? todos.length + " offen" : "";
+  if (todos.length === 0) { el.innerHTML = `<div class="todo-empty">Noch keine Einträge.</div>`; return; }
+  el.innerHTML = todos.map((t,i) => `<div class="todo-item"><div class="todo-cb" onclick="checkTodo(${i},this)"><span class="todo-cb-check">✓</span></div><div class="todo-label">${esc(t)}</div></div>`).join("");
+}
+
+function addTodo() {
+  const input = document.getElementById("todo-input");
+  const val = input.value.trim();
+  if (!val) return;
+  todos.unshift(val);
+  input.value = "";
+  renderTodos();
+  scheduleTodoSave();
+  input.focus();
+}
+
+function todoKeydown(e) { if (e.key === "Enter") addTodo(); }
+
+function checkTodo(index, cbEl) {
+  cbEl.classList.add("completing");
+  const labelEl = cbEl.nextElementSibling;
+  if (labelEl) labelEl.classList.add("done");
+  cbEl.style.pointerEvents = "none";
+  setTimeout(() => { todos.splice(index, 1); renderTodos(); scheduleTodoSave(); }, 500);
 }
 </script>
 </body>
