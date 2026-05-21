@@ -164,23 +164,26 @@ let projects = [], filter = "all", editingId = null, saveTimer = null;
 let newDraft = { name: "", rawNote: "", status: "yellow", due: "", end: "" };
 
 // ── Sorting ───────────────────────────────────────────────────
-function sortScore(p) {
-  if (p.status === "yellow") return p.due ? 0 : 1;
-  if (p.status === "purple") return 2;
-  if (p.status === "green")  return 3;
-  if (p.status === "red")    return 4;
-  return 5;
+function statusScore(p) {
+  if (p.status === "yellow") return 0;
+  if (p.status === "purple") return 1;
+  if (p.status === "green")  return 2;
+  if (p.status === "red")    return 3;
+  return 4;
 }
 
 function sortProjects(list) {
   return [...list].sort((a, b) => {
-    const sa = sortScore(a), sb = sortScore(b);
-    if (sa !== sb) return sa - sb;
-    // within same score: to do with date sorted by date, rest alphabetically
-    if (sa === 0) {
-      const da = new Date(a.due), db = new Date(b.due);
-      if (da - db !== 0) return da - db;
+    const aDue = a.due ? new Date(a.due) : null;
+    const bDue = b.due ? new Date(b.due) : null;
+    if (aDue && bDue) {
+      if (aDue - bDue !== 0) return aDue - bDue;
+      return a.name.localeCompare(b.name, "de");
     }
+    if (aDue && !bDue) return -1;
+    if (!aDue && bDue) return 1;
+    const ss = statusScore(a) - statusScore(b);
+    if (ss !== 0) return ss;
     return a.name.localeCompare(b.name, "de");
   });
 }
