@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Quick Todos</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f8f8f6; font-family: Helvetica, Arial, sans-serif; min-height: 100vh; }
+
+  .screen { max-width: 680px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  .header { margin-bottom: 20px; }
+  .header-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #111; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .btn-dash { font-size: 12px; color: #9ca3af; text-decoration: none; padding: 4px 8px; border-radius: 6px; border: 1.5px solid #e5e7eb; background: #fff; }
+  .btn-dash:hover { color: #374151; border-color: #9ca3af; }
+  .btn-logout { background: none; border: none; color: #d1d5db; cursor: pointer; font-size: 12px; font-family: inherit; }
+  .btn-logout:hover { color: #9ca3af; }
+
+  /* Input */
+  .input-area { display: flex; gap: 8px; margin-bottom: 16px; }
+  .todo-input { flex: 1; font-size: 16px; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; font-family: inherit; color: #111; outline: none; background: #fff; transition: border-color 0.15s; -webkit-appearance: none; }
+  .todo-input:focus { border-color: #9ca3af; }
+  .todo-input::placeholder { color: #d1d5db; }
+  .btn-add { padding: 10px 16px; border-radius: 10px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 15px; font-family: inherit; font-weight: 700; flex-shrink: 0; }
+  .btn-add:active { background: #374151; }
+
+  /* Items */
+  .todo-list { display: flex; flex-direction: column; gap: 8px; }
+  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; transition: opacity 0.3s; }
+  .todo-item.done { opacity: 0; }
+  .todo-cb { width: 22px; height: 22px; border: 2px solid #d1d5db; border-radius: 50%; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: #fff; }
+  .todo-cb:active { transform: scale(0.9); }
+  .todo-cb.completing { border-color: #16a34a; background: #16a34a; }
+  .todo-cb-check { display: none; color: #fff; font-size: 11px; font-weight: 700; }
+  .todo-cb.completing .todo-cb-check { display: block; }
+  .todo-label { font-size: 15px; color: #111; line-height: 1.4; flex: 1; }
+  .todo-label.done { text-decoration: line-through; color: #9ca3af; }
+
+  .empty { text-align: center; color: #d1d5db; padding: 40px 0; font-size: 15px; }
+
+  .count { font-size: 12px; color: #9ca3af; margin-bottom: 12px; }
+
+  /* Login */
+  .login-screen { text-align: center; padding: 80px 20px; }
+  .login-screen h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 8px; }
+  .login-screen p { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.6; }
+  .btn-login-big { padding: 12px 28px; border-radius: 10px; border: 1.5px solid #e5e7eb; background: #fff; color: #111; cursor: pointer; font-size: 15px; font-weight: 600; font-family: inherit; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+  /* Sync indicator */
+  .sync { font-size: 11px; color: #d1d5db; text-align: right; margin-top: 16px; min-height: 16px; transition: color 0.3s; }
+  .sync.saving { color: #f59e0b; }
+  .sync.saved  { color: #16a34a; }
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen" style="display:none">
+  <h2>Quick Todos</h2>
+  <p>Melde dich an um deine Todos<br>geräteübergreifend zu speichern.</p>
+  <button class="btn-login-big" onclick="signIn()">🔐 Mit Google anmelden</button>
+</div>
+
+<div id="app" style="display:none">
+  <div class="screen">
+    <div class="header">
+      <div class="header-label">Mein persönliches</div>
+      <div class="header-row">
+        <h1>Quick Todos</h1>
+        <div class="header-right">
+          <a class="btn-dash" href="projektübersicht.html">← Dashboard</a>
+          <button class="btn-logout" onclick="signOut()">Abmelden</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <input class="todo-input" id="todo-input" placeholder="Aufgabe notieren…" onkeydown="todoKeydown(event)" autocomplete="off" />
+      <button class="btn-add" onclick="addTodo()">+</button>
+    </div>
+
+    <div class="count" id="todo-count"></div>
+    <div class="todo-list" id="todo-list"></div>
+    <div class="sync" id="sync-label"></div>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = "907159149164-mmpm2dntmhad9qg304dadmkgid5skacb.apps.googleusercontent.com";
+const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const TODO_FILE = "quick_todos.json";
+
+let tokenClient, accessToken = null;
+let todos = [], todoFileId = null, saveTimer = null;
+
+// ── Google Identity ───────────────────────────────────────────
+window.addEventListener("load", () => {
+  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: () => {} });
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPE,
+    callback: async (resp) => {
+      if (resp.error) return;
+      accessToken = resp.access_token;
+      localStorage.setItem("caritas_signed_in", "1");
+      showApp();
+      await loadFromDrive();
+    }
+  });
+  if (localStorage.getItem("caritas_signed_in") === "1") {
+    showApp();
+    tokenClient.requestAccessToken({ prompt: "" });
+  } else {
+    document.getElementById("login-screen").style.display = "";
+  }
+  // Focus input on load
+  setTimeout(() => { const el = document.getElementById("todo-input"); if(el) el.focus(); }, 300);
+});
+
+function signIn() { tokenClient.requestAccessToken({ prompt: "consent" }); }
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null; todoFileId = null;
+  localStorage.removeItem("caritas_signed_in");
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "";
+}
+function showApp() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "";
+}
+
+// ── Drive ─────────────────────────────────────────────────────
+async function driveRequest(method, url, body) {
+  const headers = { Authorization: "Bearer " + accessToken };
+  if (body) headers["Content-Type"] = "application/json";
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (!res.ok) throw new Error(await res.text());
+  return res;
+}
+
+async function loadFromDrive() {
+  setSyncLabel("Lädt…", "");
+  try {
+    const res = await driveRequest("GET",
+      "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27"+TODO_FILE+"%27&fields=files(id)");
+    const data = await res.json();
+    if (data.files && data.files.length) {
+      todoFileId = data.files[0].id;
+      const r = await driveRequest("GET", "https://www.googleapis.com/drive/v3/files/"+todoFileId+"?alt=media");
+      todos = await r.json();
+    } else {
+      todos = [];
+      todoFileId = await createFile([]);
+    }
+    setSyncLabel("", "");
+  } catch(e) {
+    todos = [];
+    setSyncLabel("Fehler beim Laden", "");
+  }
+  renderTodos();
+}
+
+async function createFile(content) {
+  const meta = { name: TODO_FILE, parents: ["appDataFolder"] };
+  const form = new FormData();
+  form.append("metadata", new Blob([JSON.stringify(meta)], { type: "application/json" }));
+  form.append("file",     new Blob([JSON.stringify(content)], { type: "application/json" }));
+  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+    { method: "POST", headers: { Authorization: "Bearer "+accessToken }, body: form });
+  return (await res.json()).id;
+}
+
+function scheduleSave() {
+  setSyncLabel("Speichert…", "saving");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      if (!todoFileId) todoFileId = await createFile(todos);
+      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+todoFileId+"?uploadType=media",
+        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(todos) });
+      setSyncLabel("Gespeichert ✓", "saved");
+      setTimeout(() => setSyncLabel("", ""), 2000);
+    } catch(e) { setSyncLabel("Fehler beim Speichern", ""); }
+  }, 800);
+}
+
+function setSyncLabel(text, cls) {
+  const el = document.getElementById("sync-label");
+  if (!el) return;
+  el.textContent = text;
+  el.className = "sync " + cls;
+}
+
+// ── Render ────────────────────────────────────────────────────
+function esc(str) { return (str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function renderTodos() {
+  const el = document.getElementById("todo-list");
+  const countEl = document.getElementById("todo-count");
+  if (!el) return;
+  if (countEl) countEl.textContent = todos.length ? todos.length + (todos.length === 1 ? " offene Aufgabe" : " offene Aufgaben") : "";
+  if (todos.length === 0) { el.innerHTML = `<div class="empty">Nichts offen. 🎉</div>`; return; }
+  el.innerHTML = todos.map((t, i) => `
+    <div class="todo-item" id="ti-${i}">
+      <div class="todo-cb" onclick="checkTodo(${i}, this)">
+        <span class="todo-cb-check">✓</span>
+      </div>
+      <div class="todo-label">${esc(t)}</div>
+    </div>`).join("");
+}
+
+function addTodo() {
+  const input = document.getElementById("todo-input");
+  const val = input.value.trim();
+  if (!val) return;
+  todos.unshift(val);
+  input.value = "";
+  renderTodos();
+  scheduleSave();
+  input.focus();
+}
+
+function todoKeydown(e) { if (e.key === "Enter") addTodo(); }
+
+function checkTodo(index, cbEl) {
+  cbEl.classList.add("completing");
+  const labelEl = cbEl.nextElementSibling;
+  if (labelEl) labelEl.classList.add("done");
+  cbEl.style.pointerEvents = "none";
+  setTimeout(() => {
+    todos.splice(index, 1);
+    renderTodos();
+    scheduleSave();
+  }, 500);
+}
+</script>
+</body>
+</html>
