@@ -478,7 +478,7 @@ function renderAddForm(){
   document.getElementById("add-area").innerHTML=`
     <div class="add-card">
       <div class="edit-form">
-        <input class="edit-name" id="new-name" value="" placeholder="Projektname..." />
+        <input class="edit-name" id="new-name" value="${esc(newDraft.name)}" placeholder="Projektname..." />
         <div class="status-picker">
           ${Object.entries(STATUS).map(([key,val])=>`
             <button class="status-btn ${newDraft.status===key?"sel-"+key:""}" onclick="setNewStatus('${key}')">
