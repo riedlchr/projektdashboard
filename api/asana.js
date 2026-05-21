@@ -12,7 +12,10 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "ASANA_TOKEN not set" });
   }
 
+  const PRIO_SECTION_NAME = "Prio 1";
+
   try {
+    // Step 1: get current user
     const meRes = await fetch("https://app.asana.com/api/1.0/users/me", {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -20,6 +23,7 @@ export default async function handler(req, res) {
     const userId = meData.data?.gid;
     if (!userId) return res.status(500).json({ error: "Could not get Asana user" });
 
+    // Step 2: get workspaces
     const wsRes = await fetch("https://app.asana.com/api/1.0/workspaces", {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -27,13 +31,38 @@ export default async function handler(req, res) {
     const workspaceId = wsData.data?.[0]?.gid;
     if (!workspaceId) return res.status(500).json({ error: "No workspace found" });
 
+    // Step 3: get user task list (My Tasks)
+    const utlRes = await fetch(
+      `https://app.asana.com/api/1.0/users/${userId}/user_task_list?workspace=${workspaceId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const utlData = await utlRes.json();
+    const taskListId = utlData.data?.gid;
+    if (!taskListId) return res.status(500).json({ error: "No task list found" });
+
+    // Step 4: get sections of My Tasks
+    const sectRes = await fetch(
+      `https://app.asana.com/api/1.0/user_task_lists/${taskListId}/sections`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const sectData = await sectRes.json();
+    const sections = sectData.data || [];
+
+    // Step 5: find "Prio 1" section
+    const prioSection = sections.find(s => s.name === PRIO_SECTION_NAME);
+    if (!prioSection) {
+      return res.status(200).json({ tasks: [], warning: `Section "${PRIO_SECTION_NAME}" not found` });
+    }
+
+    // Step 6: get tasks in that section
     const tasksRes = await fetch(
-      `https://app.asana.com/api/1.0/tasks?assignee=${userId}&workspace=${workspaceId}&completed_since=now&opt_fields=name,due_on,projects.name,permalink_url&limit=50`,
+      `https://app.asana.com/api/1.0/sections/${prioSection.gid}/tasks?opt_fields=name,due_on,completed,permalink_url&limit=50`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const tasksData = await tasksRes.json();
+    const tasks = (tasksData.data || []).filter(t => !t.completed);
 
-    return res.status(200).json({ tasks: tasksData.data || [] });
+    return res.status(200).json({ tasks });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
