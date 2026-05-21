@@ -37,41 +37,31 @@
 
   .projects { display: flex; flex-wrap: wrap; gap: 12px; }
 
-  /* Card base */
-  .card {
-    border: 1.5px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 16px 18px;
-    transition: box-shadow 0.2s;
-    flex: 1 1 260px;
-    min-width: 220px;
-    max-width: 340px;
-  }
+  .card { border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 16px 18px; transition: box-shadow 0.2s; flex: 1 1 260px; min-width: 220px; max-width: 340px; }
   .card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.10); }
-
-  /* Status background colors */
-  .card-yellow  { background: #fffbeb; border-color: #fde68a; }
-  .card-purple  { background: #f5f3ff; border-color: #ddd6fe; }
-  .card-green   { background: #f0fdf4; border-color: #bbf7d0; }
-  .card-red     { background: #fef2f2; border-color: #fecaca; }
-
-  /* Due date warning overrides card to brighter orange */
+  .card-yellow { background: #fffbeb; border-color: #fde68a; }
+  .card-purple { background: #f5f3ff; border-color: #ddd6fe; }
+  .card-green  { background: #f0fdf4; border-color: #bbf7d0; }
+  .card-red    { background: #fef2f2; border-color: #fecaca; }
   .card.due-warning { background: #fff7ed; border-color: #fb923c; box-shadow: 0 0 0 2px #fed7aa; }
+  .card.editing { flex: 1 1 100%; max-width: 100%; background: #fff; border-color: #e5e7eb; }
 
   .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
   .card-left   { display: flex; align-items: flex-start; gap: 10px; }
   .card-name   { font-size: 14px; font-weight: 700; color: #111; line-height: 1.3; }
+  .card-actions { display: flex; gap: 2px; flex-shrink: 0; }
   .card-actions button { background: none; border: none; cursor: pointer; font-size: 14px; padding: 3px 5px; border-radius: 6px; opacity: 0.5; transition: opacity 0.15s; }
   .card-actions button:hover { opacity: 1; }
-  .card-actions { display: flex; gap: 2px; flex-shrink: 0; }
 
   .card-bullets { margin-top: 8px; padding-left: 20px; }
   .card-bullets ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; }
   .card-bullets li { font-size: 12px; color: #6b7280; line-height: 1.5; display: flex; gap: 6px; align-items: flex-start; }
   .card-bullets li::before { content: "·"; color: #9ca3af; font-size: 15px; line-height: 1.3; flex-shrink: 0; }
 
-  .card-due { margin-top: 8px; padding-left: 20px; font-size: 11px; color: #9ca3af; }
+  .card-dates { margin-top: 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
+  .card-due { font-size: 11px; color: #9ca3af; }
   .card-due.warning { color: #ea580c; font-weight: 600; }
+  .card-end { font-size: 11px; color: #9ca3af; }
 
   .badge { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 600; border-radius: 20px; padding: 2px 8px; letter-spacing: 0.3px; }
   .badge-yellow { color: #d97706; background: #fef3c7; border: 1px solid #fde68a; }
@@ -85,15 +75,16 @@
   .dot-green  { background: #16a34a; }
   .dot-red    { background: #dc2626; }
 
-  /* Edit card full width */
-  .card.editing { flex: 1 1 100%; max-width: 100%; background: #fff; border-color: #e5e7eb; }
-
   .edit-form { display: flex; flex-direction: column; gap: 12px; }
   .edit-name { font-size: 14px; font-weight: 600; border: none; border-bottom: 2px solid #e5e7eb; outline: none; padding-bottom: 4px; font-family: inherit; color: #111; background: transparent; width: 100%; }
   .edit-note { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; font-family: inherit; color: #374151; resize: none; outline: none; line-height: 1.6; background: #fafafa; width: 100%; overflow: hidden; min-height: 56px; }
   .edit-note-hint { font-size: 11px; color: #9ca3af; margin-top: 3px; }
-  .edit-due { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 7px 10px; font-family: inherit; color: #374151; outline: none; background: #fafafa; width: 100%; }
+
+  .date-row { display: flex; align-items: center; gap: 8px; }
+  .edit-due { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 7px 10px; font-family: inherit; color: #374151; outline: none; background: #fafafa; flex: 1; }
   .edit-due-label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+  .btn-clear-date { padding: 6px 10px; border-radius: 8px; border: 1.5px solid #e5e7eb; background: #fff; color: #9ca3af; cursor: pointer; font-size: 12px; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
+  .btn-clear-date:hover { border-color: #dc2626; color: #dc2626; }
 
   .status-picker { display: flex; gap: 8px; flex-wrap: wrap; }
   .status-btn { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid #e5e7eb; background: #f9fafb; color: #9ca3af; cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: inherit; }
@@ -153,49 +144,45 @@ const CLIENT_ID = "907159149164-mmpm2dntmhad9qg304dadmkgid5skacb.apps.googleuser
 const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const FILE_NAME = "caritas_projekte.json";
 
-// Status order for sorting
-const STATUS_ORDER = { yellow: 0, purple: 2, green: 3, red: 4 };
-// yellow with due date = 0, yellow without = 1 (handled in sort)
-
 const STATUS = {
-  yellow: { label: "To Do notwendig",  dot: "#d97706", bg: "#fffbeb", border: "#fde68a" },
-  purple: { label: "Wartet auf andere", dot: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
-  green:  { label: "Auf Kurs",          dot: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-  red:    { label: "On Hold",           dot: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  yellow: { label: "To Do notwendig",  dot: "#d97706" },
+  purple: { label: "Wartet auf andere", dot: "#7c3aed" },
+  green:  { label: "Auf Kurs",          dot: "#16a34a" },
+  red:    { label: "On Hold",           dot: "#dc2626" },
 };
 
 const DEFAULT_PROJECTS = [
-  { id: 1, name: "CaritasAI – Interne KI-Plattform",              status: "green",  bullets: ["Rollout läuft", "Nutzung steigt kontinuierlich"], due: "" },
-  { id: 2, name: "10 Jahre Hannes Ziselsberger – Jubiläumsfeier", status: "yellow", bullets: ["Einladungen in Vorbereitung", "Sponsoring offen"], due: "2026-09-01" },
-  { id: 3, name: "Nachhaltigkeitsstrategie",                       status: "green",  bullets: ["Kapitel 1–3 überarbeitet", "Abstimmung läuft"], due: "" },
-  { id: 4, name: "Mutter-Kind-Haus – Fundraising-Mailing",        status: "green",  bullets: ["Abgeschlossen", "Rücklauf wird ausgewertet"], due: "" },
-  { id: 5, name: "Vision Run 2026",                               status: "yellow", bullets: ["Einladung fertig", "Interne Kommunikation ausständig"], due: "" },
+  { id: 1, name: "CaritasAI – Interne KI-Plattform",              status: "green",  bullets: ["Rollout läuft", "Nutzung steigt kontinuierlich"], due: "", end: "" },
+  { id: 2, name: "10 Jahre Hannes Ziselsberger – Jubiläumsfeier", status: "yellow", bullets: ["Einladungen in Vorbereitung", "Sponsoring offen"], due: "2026-09-01", end: "2026-10-01" },
+  { id: 3, name: "Nachhaltigkeitsstrategie",                       status: "green",  bullets: ["Kapitel 1–3 überarbeitet", "Abstimmung läuft"], due: "", end: "" },
+  { id: 4, name: "Mutter-Kind-Haus – Fundraising-Mailing",        status: "green",  bullets: ["Abgeschlossen", "Rücklauf wird ausgewertet"], due: "", end: "" },
+  { id: 5, name: "Vision Run 2026",                               status: "yellow", bullets: ["Einladung fertig", "Interne Kommunikation ausständig"], due: "", end: "" },
 ];
 
 let tokenClient, accessToken = null, driveFileId = null;
 let projects = [], filter = "all", editingId = null, saveTimer = null;
-let newDraft = { name: "", rawNote: "", status: "yellow", due: "" };
+let newDraft = { name: "", rawNote: "", status: "yellow", due: "", end: "" };
 
 // ── Sorting ───────────────────────────────────────────────────
-function sortProjects(list) {
-  return [...list].sort((a, b) => {
-    const scoreA = sortScore(a);
-    const scoreB = sortScore(b);
-    if (scoreA !== scoreB) return scoreA - scoreB;
-    // within same group: sort by due date ascending
-    if (a.due && b.due) return new Date(a.due) - new Date(b.due);
-    if (a.due) return -1;
-    if (b.due) return 1;
-    return 0;
-  });
-}
-
 function sortScore(p) {
   if (p.status === "yellow") return p.due ? 0 : 1;
   if (p.status === "purple") return 2;
   if (p.status === "green")  return 3;
   if (p.status === "red")    return 4;
   return 5;
+}
+
+function sortProjects(list) {
+  return [...list].sort((a, b) => {
+    const sa = sortScore(a), sb = sortScore(b);
+    if (sa !== sb) return sa - sb;
+    // within same score: to do with date sorted by date, rest alphabetically
+    if (sa === 0) {
+      const da = new Date(a.due), db = new Date(b.due);
+      if (da - db !== 0) return da - db;
+    }
+    return a.name.localeCompare(b.name, "de");
+  });
 }
 
 // ── Due date helpers ──────────────────────────────────────────
@@ -212,10 +199,16 @@ function dueLabel(due) {
   const d = new Date(due); d.setHours(0,0,0,0);
   const diff = Math.round((d - today) / (1000*60*60*24));
   const fmt = new Date(due).toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" });
-  if (diff < 0)  return `⚠️ Überfällig seit ${Math.abs(diff)} Tagen`;
+  if (diff < 0)   return `⚠️ Überfällig seit ${Math.abs(diff)} Tagen`;
   if (diff === 0) return `⚠️ Fällig heute`;
   if (diff <= 14) return `⚠️ Fällig in ${diff} Tagen (${fmt})`;
-  return `📅 ${fmt}`;
+  return `📅 Erinnerung: ${fmt}`;
+}
+
+function endLabel(end) {
+  if (!end) return null;
+  const fmt = new Date(end).toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" });
+  return `🏁 Projektende: ${fmt}`;
 }
 
 // ── Google Identity ───────────────────────────────────────────
@@ -302,12 +295,7 @@ async function loadFromDrive() {
     driveFileId = await findFile();
     projects = driveFileId ? await readFile(driveFileId) : JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
     if (!driveFileId) driveFileId = await createFile(projects);
-    // migrate old status values & ensure fields
-    projects = projects.map(p => ({
-      due: "",
-      ...p,
-      status: p.status === "gray" ? "red" : p.status, // migrate old "gray" to "red"
-    }));
+    projects = projects.map(p => ({ due: "", end: "", ...p, status: p.status === "gray" ? "red" : p.status }));
     setSyncState("ok", "Gespeichert in Google Drive");
     render();
   } catch(e) {
@@ -334,9 +322,9 @@ function scheduleSave() {
 function render() { renderSummary(); renderFilters(); renderProjects(); }
 
 function renderSummary() {
-  const counts = Object.keys(STATUS).map(k => projects.filter(p=>p.status===k).length);
+  const c = { yellow: projects.filter(p=>p.status==="yellow").length, purple: projects.filter(p=>p.status==="purple").length, green: projects.filter(p=>p.status==="green").length, red: projects.filter(p=>p.status==="red").length };
   const el = document.getElementById("summary");
-  if (el) el.textContent = `${projects.length} Projekte · ${counts[0]} to do · ${counts[1]} wartet · ${counts[2]} auf Kurs · ${counts[3]} on hold`;
+  if (el) el.textContent = `${projects.length} Projekte · ${c.yellow} to do · ${c.purple} wartet · ${c.green} auf Kurs · ${c.red} on hold`;
 }
 
 function renderFilters() {
@@ -368,11 +356,15 @@ function renderViewCard(p) {
   const s = STATUS[p.status];
   const warning = isDueWarning(p.due);
   const dl = dueLabel(p.due);
+  const el = endLabel(p.end);
   const bullets = p.bullets || [];
   const bulletsHtml = bullets.length
     ? `<div class="card-bullets"><ul>${bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul></div>` : "";
-  const dueHtml = dl
-    ? `<div class="card-due ${warning?"warning":""}">${dl}</div>` : "";
+  const datesHtml = (dl || el) ? `
+    <div class="card-dates">
+      ${dl ? `<div class="card-due ${warning?"warning":""}">${dl}</div>` : ""}
+      ${el ? `<div class="card-end">${el}</div>` : ""}
+    </div>` : "";
   return `
     <div class="card card-${p.status}${warning?" due-warning":""}">
       <div class="card-header">
@@ -389,7 +381,18 @@ function renderViewCard(p) {
         </div>
       </div>
       ${bulletsHtml}
-      ${dueHtml}
+      ${datesHtml}
+    </div>`;
+}
+
+function dateField(idPrefix, labelText, emoji, value) {
+  return `
+    <div>
+      <div class="edit-due-label">${emoji} ${labelText}</div>
+      <div class="date-row">
+        <input type="date" class="edit-due" id="${idPrefix}" value="${esc(value||"")}" />
+        <button type="button" class="btn-clear-date" onclick="clearDate('${idPrefix}')" title="Datum löschen">✕ löschen</button>
+      </div>
     </div>`;
 }
 
@@ -409,16 +412,19 @@ function renderEditCard(p) {
           <textarea class="edit-note" id="edit-note" oninput="autoGrow(this)" placeholder="Eine Zeile = ein Bullet Point">${esc(rawNote)}</textarea>
           <div class="edit-note-hint">Eine Zeile = ein Bullet Point. Enter für neuen Punkt.</div>
         </div>
-        <div>
-          <div class="edit-due-label">📅 Erinnerungsdatum (Kästchen wird orange wenn es näher rückt)</div>
-          <input type="date" class="edit-due" id="edit-due" value="${esc(p.due||"")}" />
-        </div>
+        ${dateField("edit-due", "Erinnerungsdatum (Kästchen wird orange wenn es näher rückt)", "📅", p.due)}
+        ${dateField("edit-end", "Geplantes Projektende", "🏁", p.end)}
         <div class="edit-actions">
           <button class="btn-cancel" onclick="cancelEdit()">Abbrechen</button>
           <button class="btn-save" onclick="saveEdit(${p.id})">Speichern</button>
         </div>
       </div>
     </div>`;
+}
+
+function clearDate(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (el) el.value = "";
 }
 
 function autoGrow(el) { el.style.height="auto"; el.style.height=el.scrollHeight+"px"; }
@@ -439,6 +445,7 @@ function setEditStatus(status) {
   const ta=document.getElementById("edit-note"); if(ta) p.bullets=rawToBullets(ta.value);
   const ni=document.getElementById("edit-name"); if(ni) p.name=ni.value;
   const di=document.getElementById("edit-due");  if(di) p.due=di.value;
+  const ei=document.getElementById("edit-end");  if(ei) p.end=ei.value;
   p.status=status; render();
 }
 
@@ -446,9 +453,10 @@ function saveEdit(id) {
   const name=document.getElementById("edit-name").value.trim();
   const raw =document.getElementById("edit-note").value;
   const due =document.getElementById("edit-due").value;
+  const end =document.getElementById("edit-end").value;
   if(!name) return;
   const p=projects.find(p=>p.id===id);
-  if(p){p.name=name; p.bullets=rawToBullets(raw); p.due=due;}
+  if(p){p.name=name; p.bullets=rawToBullets(raw); p.due=due; p.end=end;}
   editingId=null; render(); scheduleSave();
 }
 
@@ -462,7 +470,7 @@ function deleteProject(id){
 
 function startAdd(){
   editingId=null;
-  newDraft={name:"",rawNote:"",status:"yellow",due:""};
+  newDraft={name:"",rawNote:"",status:"yellow",due:"",end:""};
   renderAddForm();
 }
 
@@ -481,10 +489,8 @@ function renderAddForm(){
           <textarea class="edit-note" id="new-note" oninput="autoGrow(this)" placeholder="Eine Zeile = ein Bullet Point">${esc(newDraft.rawNote)}</textarea>
           <div class="edit-note-hint">Eine Zeile = ein Bullet Point. Enter für neuen Punkt.</div>
         </div>
-        <div>
-          <div class="edit-due-label">📅 Erinnerungsdatum (optional)</div>
-          <input type="date" class="edit-due" id="new-due" value="${esc(newDraft.due)}" />
-        </div>
+        ${dateField("new-due", "Erinnerungsdatum (optional)", "📅", newDraft.due)}
+        ${dateField("new-end", "Geplantes Projektende (optional)", "🏁", newDraft.end)}
         <div class="edit-actions">
           <button class="btn-cancel" onclick="cancelAdd()">Abbrechen</button>
           <button class="btn-save" onclick="confirmAdd()">Hinzufügen</button>
@@ -499,6 +505,7 @@ function setNewStatus(status){
   const ta=document.getElementById("new-note"); if(ta) newDraft.rawNote=ta.value;
   const ni=document.getElementById("new-name"); if(ni) newDraft.name=ni.value;
   const di=document.getElementById("new-due");  if(di) newDraft.due=di.value;
+  const ei=document.getElementById("new-end");  if(ei) newDraft.end=ei.value;
   newDraft.status=status; renderAddForm();
 }
 
@@ -506,8 +513,9 @@ function confirmAdd(){
   const name=document.getElementById("new-name").value.trim();
   const raw =document.getElementById("new-note").value;
   const due =document.getElementById("new-due").value;
+  const end =document.getElementById("new-end").value;
   if(!name) return;
-  projects.push({id:Date.now(),name,bullets:rawToBullets(raw),status:newDraft.status,due});
+  projects.push({id:Date.now(),name,bullets:rawToBullets(raw),status:newDraft.status,due,end});
   document.getElementById("add-area").innerHTML="";
   render(); scheduleSave();
 }
