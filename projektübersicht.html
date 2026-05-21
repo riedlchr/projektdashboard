@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Projektübersicht – Caritas St. Pölten</title>
+<title>Projektdashboard – Christoph Riedl</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #f8f8f6; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+  body { background: #f8f8f6; font-family: Helvetica, Arial, sans-serif; min-height: 100vh; }
 
-  .header { padding: 36px 20px 0; max-width: 680px; margin: 0 auto; }
+  .header { padding: 36px 20px 0; max-width: 1200px; margin: 0 auto; }
   .header-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #9ca3af; text-transform: uppercase; margin-bottom: 6px; }
-  .header h1 { font-size: 26px; font-weight: 700; color: #111; font-family: Georgia, serif; line-height: 1.2; }
+  .header h1 { font-size: 26px; font-weight: 700; color: #111; line-height: 1.2; }
   .header-sub { font-size: 13px; color: #9ca3af; margin-top: 5px; min-height: 20px; }
 
-  .container { max-width: 680px; margin: 0 auto; padding: 24px 20px 80px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px; }
 
   .sync-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; min-height: 28px; }
   .sync-status { font-size: 12px; color: #9ca3af; display: flex; align-items: center; gap: 6px; }
@@ -24,51 +24,82 @@
   .sync-dot.err { background: #dc2626; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-  .btn-login { padding: 7px 16px; border-radius: 8px; border: 1.5px solid #e5e7eb; background: #fff; color: #374151; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; display: flex; align-items: center; gap: 7px; }
-  .btn-login:hover { border-color: #9ca3af; }
   .btn-logout { padding: 4px 10px; border-radius: 6px; border: none; background: none; color: #9ca3af; cursor: pointer; font-size: 12px; font-family: inherit; }
   .btn-logout:hover { color: #374151; }
 
   .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-  .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid transparent; cursor: pointer; background: #efefed; color: #9ca3af; transition: all 0.15s; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid transparent; cursor: pointer; background: #efefed; color: #9ca3af; transition: all 0.15s; font-family: inherit; }
   .filter-btn.active-all    { border-color: #111;    background: #f3f4f6; color: #111; }
   .filter-btn.active-green  { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
   .filter-btn.active-yellow { border-color: #d97706; background: #fffbeb; color: #d97706; }
   .filter-btn.active-gray   { border-color: #6b7280; background: #f9fafb; color: #6b7280; }
 
-  .projects { display: flex; flex-direction: column; gap: 10px; }
+  /* Grid layout */
+  .projects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 
-  .card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 18px 20px; transition: box-shadow 0.2s; }
+  .card {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 16px 18px;
+    transition: box-shadow 0.2s, border-color 0.3s, background 0.3s;
+    flex: 1 1 260px;
+    min-width: 220px;
+    max-width: 340px;
+  }
   .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .card-left { display: flex; align-items: flex-start; gap: 12px; }
-  .card-name { font-size: 15px; font-weight: 700; color: #111; line-height: 1.3; }
+
+  /* Due date warning: whole card turns orange */
+  .card.due-warning {
+    background: #fffbeb;
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 2px #fde68a;
+  }
+
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .card-left { display: flex; align-items: flex-start; gap: 10px; }
+  .card-name { font-size: 14px; font-weight: 700; color: #111; line-height: 1.3; }
   .card-actions { display: flex; gap: 2px; flex-shrink: 0; }
-  .card-actions button { background: none; border: none; cursor: pointer; font-size: 15px; padding: 4px 6px; border-radius: 6px; opacity: 0.5; transition: opacity 0.15s; }
+  .card-actions button { background: none; border: none; cursor: pointer; font-size: 14px; padding: 3px 5px; border-radius: 6px; opacity: 0.5; transition: opacity 0.15s; }
   .card-actions button:hover { opacity: 1; }
 
-  .card-bullets { margin-top: 10px; padding-left: 23px; }
-  .card-bullets ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
-  .card-bullets li { font-size: 13px; color: #6b7280; line-height: 1.5; display: flex; gap: 7px; align-items: flex-start; }
-  .card-bullets li::before { content: "·"; color: #9ca3af; font-size: 16px; line-height: 1.3; flex-shrink: 0; }
+  .card-bullets { margin-top: 8px; padding-left: 20px; }
+  .card-bullets ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; }
+  .card-bullets li { font-size: 12px; color: #6b7280; line-height: 1.5; display: flex; gap: 6px; align-items: flex-start; }
+  .card-bullets li::before { content: "·"; color: #9ca3af; font-size: 15px; line-height: 1.3; flex-shrink: 0; }
 
-  .badge { display: inline-block; margin-top: 5px; font-size: 11px; font-weight: 600; border-radius: 20px; padding: 2px 9px; letter-spacing: 0.3px; }
+  .card-due { margin-top: 8px; padding-left: 20px; font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px; }
+  .card-due.warning { color: #d97706; font-weight: 600; }
+
+  .badge { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 600; border-radius: 20px; padding: 2px 8px; letter-spacing: 0.3px; }
   .badge-green  { color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; }
   .badge-yellow { color: #d97706; background: #fffbeb; border: 1px solid #fde68a; }
   .badge-gray   { color: #6b7280; background: #f9fafb; border: 1px solid #e5e7eb; }
 
-  .dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
   .dot-green  { background: #16a34a; box-shadow: 0 0 0 3px #f0fdf4, 0 0 0 4px #bbf7d0; }
   .dot-yellow { background: #d97706; box-shadow: 0 0 0 3px #fffbeb, 0 0 0 4px #fde68a; }
   .dot-gray   { background: #9ca3af; box-shadow: 0 0 0 3px #f9fafb, 0 0 0 4px #e5e7eb; }
 
+  /* Edit card: full width */
+  .card.editing {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
   .edit-form { display: flex; flex-direction: column; gap: 12px; }
-  .edit-name { font-size: 15px; font-weight: 600; border: none; border-bottom: 2px solid #e5e7eb; outline: none; padding-bottom: 4px; font-family: inherit; color: #111; background: transparent; width: 100%; }
-  .edit-note { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; font-family: inherit; color: #374151; resize: none; outline: none; line-height: 1.6; background: #fafafa; width: 100%; overflow: hidden; min-height: 60px; }
+  .edit-name { font-size: 14px; font-weight: 600; border: none; border-bottom: 2px solid #e5e7eb; outline: none; padding-bottom: 4px; font-family: inherit; color: #111; background: transparent; width: 100%; }
+  .edit-note { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; font-family: inherit; color: #374151; resize: none; outline: none; line-height: 1.6; background: #fafafa; width: 100%; overflow: hidden; min-height: 56px; }
   .edit-note-hint { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+  .edit-due { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 7px 10px; font-family: inherit; color: #374151; outline: none; background: #fafafa; width: 100%; }
+  .edit-due-label { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
 
   .status-picker { display: flex; gap: 8px; flex-wrap: wrap; }
-  .status-btn { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid #e5e7eb; background: #f9fafb; color: #9ca3af; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .status-btn { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid #e5e7eb; background: #f9fafb; color: #9ca3af; cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: inherit; }
   .status-btn.sel-green  { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
   .status-btn.sel-yellow { border-color: #d97706; background: #fffbeb; color: #d97706; }
   .status-btn.sel-gray   { border-color: #6b7280; background: #f9fafb; color: #6b7280; }
@@ -80,10 +111,10 @@
   .add-btn { width: 100%; padding: 14px; border-radius: 14px; border: 2px dashed #d1d5db; background: transparent; color: #9ca3af; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 10px; transition: all 0.15s; }
   .add-btn:hover { border-color: #9ca3af; color: #6b7280; }
   .add-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 20px 22px; margin-top: 10px; }
-  .empty { text-align: center; color: #d1d5db; padding: 40px 0; font-size: 14px; }
+  .empty { text-align: center; color: #d1d5db; padding: 40px 0; font-size: 14px; width: 100%; }
 
   .login-screen { max-width: 680px; margin: 80px auto; padding: 0 20px; text-align: center; }
-  .login-screen h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 10px; font-family: Georgia, serif; }
+  .login-screen h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 10px; }
   .login-screen p { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.6; }
   .btn-login-big { padding: 12px 28px; border-radius: 10px; border: 1.5px solid #e5e7eb; background: #fff; color: #111; cursor: pointer; font-size: 15px; font-weight: 600; font-family: inherit; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
   .btn-login-big:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
@@ -92,15 +123,15 @@
 <body>
 
 <div id="login-screen" class="login-screen" style="display:none">
-  <h2>Projektübersicht</h2>
+  <h2>Projektdashboard</h2>
   <p>Melde dich mit deinem Google-Konto an.<br>Die Daten werden in deinem Google Drive gespeichert<br>und sind auf allen Geräten verfügbar.</p>
   <button class="btn-login-big" onclick="signIn()">🔐 Mit Google anmelden</button>
 </div>
 
 <div id="app" style="display:none">
   <div class="header">
-    <div class="header-label">Caritas St. Pölten</div>
-    <h1>Projektübersicht</h1>
+    <div class="header-label">Christoph Riedl</div>
+    <h1>Projektdashboard</h1>
     <div class="header-sub" id="summary"></div>
   </div>
   <div class="container">
@@ -130,28 +161,48 @@ const STATUS = {
 };
 
 const DEFAULT_PROJECTS = [
-  { id: 1, name: "CaritasAI – Interne KI-Plattform",              status: "green",  bullets: ["Rollout läuft", "Nutzung steigt kontinuierlich"] },
-  { id: 2, name: "10 Jahre Hannes Ziselsberger – Jubiläumsfeier", status: "yellow", bullets: ["Einladungen in Vorbereitung", "Sponsoring offen"] },
-  { id: 3, name: "Nachhaltigkeitsstrategie",                       status: "green",  bullets: ["Kapitel 1–3 überarbeitet", "Abstimmung läuft"] },
-  { id: 4, name: "Mutter-Kind-Haus – Fundraising-Mailing",        status: "green",  bullets: ["Abgeschlossen", "Rücklauf wird ausgewertet"] },
-  { id: 5, name: "Vision Run 2026",                               status: "yellow", bullets: ["Einladung fertig", "Interne Kommunikation ausständig"] },
+  { id: 1, name: "CaritasAI – Interne KI-Plattform",              status: "green",  bullets: ["Rollout läuft", "Nutzung steigt kontinuierlich"], due: "" },
+  { id: 2, name: "10 Jahre Hannes Ziselsberger – Jubiläumsfeier", status: "yellow", bullets: ["Einladungen in Vorbereitung", "Sponsoring offen"], due: "2026-09-01" },
+  { id: 3, name: "Nachhaltigkeitsstrategie",                       status: "green",  bullets: ["Kapitel 1–3 überarbeitet", "Abstimmung läuft"], due: "" },
+  { id: 4, name: "Mutter-Kind-Haus – Fundraising-Mailing",        status: "green",  bullets: ["Abgeschlossen", "Rücklauf wird ausgewertet"], due: "" },
+  { id: 5, name: "Vision Run 2026",                               status: "yellow", bullets: ["Einladung fertig", "Interne Kommunikation ausständig"], due: "" },
 ];
 
-let tokenClient;
-let accessToken = null;
-let driveFileId = null;
-let projects = [];
-let filter = "all";
-let editingId = null;
-let newDraft = { name: "", rawNote: "", status: "green" };
-let saveTimer = null;
+let tokenClient, accessToken = null, driveFileId = null;
+let projects = [], filter = "all", editingId = null, saveTimer = null;
+let newDraft = { name: "", rawNote: "", status: "green", due: "" };
+
+// ── Due date helpers ─────────────────────────────────────────
+function isDueWarning(due) {
+  if (!due) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(due); d.setHours(0,0,0,0);
+  const diff = (d - today) / (1000 * 60 * 60 * 24);
+  return diff <= 14; // warn 2 weeks before
+}
+
+function formatDue(due) {
+  if (!due) return null;
+  const d = new Date(due);
+  return d.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function dueLabel(due) {
+  if (!due) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(due); d.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return `⚠️ Überfällig seit ${Math.abs(diff)} Tagen`;
+  if (diff === 0) return `⚠️ Fällig heute`;
+  if (diff <= 14) return `⚠️ Fällig in ${diff} Tagen (${formatDue(due)})`;
+  return `📅 ${formatDue(due)}`;
+}
 
 // ── Google Identity ──────────────────────────────────────────
 window.addEventListener("load", () => {
   google.accounts.id.initialize({ client_id: CLIENT_ID, callback: () => {} });
   tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPE,
+    client_id: CLIENT_ID, scope: SCOPE,
     callback: async (resp) => {
       if (resp.error) { setSyncState("err", "Anmeldung fehlgeschlagen"); return; }
       accessToken = resp.access_token;
@@ -161,8 +212,7 @@ window.addEventListener("load", () => {
     }
   });
   if (localStorage.getItem("caritas_signed_in") === "1") {
-    showApp();
-    setSyncState("busy", "Verbinde…");
+    showApp(); setSyncState("busy", "Verbinde…");
     tokenClient.requestAccessToken({ prompt: "" });
   } else {
     document.getElementById("login-screen").style.display = "";
@@ -182,7 +232,7 @@ function showApp() {
   document.getElementById("app").style.display = "";
 }
 
-// ── Sync state ───────────────────────────────────────────────
+// ── Sync ─────────────────────────────────────────────────────
 function setSyncState(state, label) {
   const dot = document.getElementById("sync-dot");
   const lbl = document.getElementById("sync-label");
@@ -191,25 +241,22 @@ function setSyncState(state, label) {
   lbl.textContent = label;
 }
 
-// ── Drive helpers ────────────────────────────────────────────
-async function driveRequest(method, url, body, isJson = true) {
+async function driveRequest(method, url, body) {
   const headers = { Authorization: "Bearer " + accessToken };
-  if (isJson && body) headers["Content-Type"] = "application/json";
-  const res = await fetch(url, { method, headers, body: body ? (isJson ? JSON.stringify(body) : body) : undefined });
+  if (body) headers["Content-Type"] = "application/json";
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
   if (!res.ok) throw new Error(await res.text());
   return res;
 }
 
 async function findFile() {
-  const res = await driveRequest("GET",
-    "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27" + FILE_NAME + "%27&fields=files(id)");
+  const res = await driveRequest("GET", "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27" + FILE_NAME + "%27&fields=files(id)");
   const data = await res.json();
   return data.files && data.files.length ? data.files[0].id : null;
 }
 
 async function readFile(fileId) {
-  const res = await driveRequest("GET",
-    "https://www.googleapis.com/drive/v3/files/" + fileId + "?alt=media");
+  const res = await driveRequest("GET", "https://www.googleapis.com/drive/v3/files/" + fileId + "?alt=media");
   return res.json();
 }
 
@@ -218,34 +265,25 @@ async function createFile(content) {
   const form = new FormData();
   form.append("metadata", new Blob([JSON.stringify(meta)], { type: "application/json" }));
   form.append("file", new Blob([JSON.stringify(content)], { type: "application/json" }));
-  const res = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-    { method: "POST", headers: { Authorization: "Bearer " + accessToken }, body: form }
-  );
+  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+    { method: "POST", headers: { Authorization: "Bearer " + accessToken }, body: form });
   if (!res.ok) throw new Error(await res.text());
-  const data = await res.json();
-  return data.id;
+  return (await res.json()).id;
 }
 
 async function updateFile(fileId, content) {
-  await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files/" + fileId + "?uploadType=media",
-    { method: "PATCH", headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
-      body: JSON.stringify(content) }
-  );
+  await fetch("https://www.googleapis.com/upload/drive/v3/files/" + fileId + "?uploadType=media",
+    { method: "PATCH", headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" }, body: JSON.stringify(content) });
 }
 
-// ── Load / Save ──────────────────────────────────────────────
 async function loadFromDrive() {
   setSyncState("busy", "Lade Daten…");
   try {
     driveFileId = await findFile();
-    if (driveFileId) {
-      projects = await readFile(driveFileId);
-    } else {
-      projects = JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
-      driveFileId = await createFile(projects);
-    }
+    projects = driveFileId ? await readFile(driveFileId) : JSON.parse(JSON.stringify(DEFAULT_PROJECTS));
+    if (!driveFileId) driveFileId = await createFile(projects);
+    // ensure all projects have due field
+    projects = projects.map(p => ({ due: "", ...p }));
     setSyncState("ok", "Gespeichert in Google Drive");
     render();
   } catch(e) {
@@ -264,18 +302,12 @@ function scheduleSave() {
       if (!driveFileId) driveFileId = await createFile(projects);
       else await updateFile(driveFileId, projects);
       setSyncState("ok", "Gespeichert · " + new Date().toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" }));
-    } catch(e) {
-      setSyncState("err", "Speichern fehlgeschlagen");
-    }
+    } catch(e) { setSyncState("err", "Speichern fehlgeschlagen"); }
   }, 1200);
 }
 
 // ── Render ───────────────────────────────────────────────────
-function render() {
-  renderSummary();
-  renderFilters();
-  renderProjects();
-}
+function render() { renderSummary(); renderFilters(); renderProjects(); }
 
 function renderSummary() {
   const g = projects.filter(p=>p.status==="green").length;
@@ -286,21 +318,10 @@ function renderSummary() {
 }
 
 function renderFilters() {
-  const counts = {
-    green:  projects.filter(p=>p.status==="green").length,
-    yellow: projects.filter(p=>p.status==="yellow").length,
-    gray:   projects.filter(p=>p.status==="gray").length,
-  };
-  const btns = [
-    { key: "all",    label: "Alle" },
-    { key: "green",  label: `Auf Kurs (${counts.green})` },
-    { key: "yellow", label: `To Do (${counts.yellow})` },
-    { key: "gray",   label: `On Hold (${counts.gray})` },
-  ];
+  const counts = { green: projects.filter(p=>p.status==="green").length, yellow: projects.filter(p=>p.status==="yellow").length, gray: projects.filter(p=>p.status==="gray").length };
+  const btns = [{ key:"all", label:"Alle" }, { key:"green", label:`Auf Kurs (${counts.green})` }, { key:"yellow", label:`To Do (${counts.yellow})` }, { key:"gray", label:`On Hold (${counts.gray})` }];
   const el = document.getElementById("filters");
-  if (el) el.innerHTML = btns.map(b =>
-    `<button class="filter-btn ${filter===b.key ? "active-"+b.key : ""}" onclick="setFilter('${b.key}')">${b.label}</button>`
-  ).join("");
+  if (el) el.innerHTML = btns.map(b => `<button class="filter-btn ${filter===b.key?"active-"+b.key:""}" onclick="setFilter('${b.key}')">${b.label}</button>`).join("");
 }
 
 function renderProjects() {
@@ -315,10 +336,14 @@ function renderProjects() {
 function renderViewCard(p) {
   const s = STATUS[p.status];
   const bullets = p.bullets || [];
+  const warning = isDueWarning(p.due);
+  const dl = dueLabel(p.due);
   const bulletsHtml = bullets.length
-    ? `<div class="card-bullets"><ul>${bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul></div>` : "";
+    ? `<div class="card-bullets"><ul>${bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul></div>` : "";
+  const dueHtml = dl
+    ? `<div class="card-due ${warning?"warning":""}">${dl}</div>` : "";
   return `
-    <div class="card">
+    <div class="card${warning?" due-warning":""}">
       <div class="card-header">
         <div class="card-left">
           <div class="dot dot-${p.status}"></div>
@@ -333,24 +358,29 @@ function renderViewCard(p) {
         </div>
       </div>
       ${bulletsHtml}
+      ${dueHtml}
     </div>`;
 }
 
 function renderEditCard(p) {
   const rawNote = (p.bullets||[]).join("\n");
   return `
-    <div class="card" style="border-color:${STATUS[p.status].border}; box-shadow: 0 0 0 3px ${STATUS[p.status].bg}">
+    <div class="card editing" style="border-color:${STATUS[p.status].border}; box-shadow: 0 0 0 3px ${STATUS[p.status].bg}">
       <div class="edit-form">
         <input class="edit-name" id="edit-name" value="${esc(p.name)}" placeholder="Projektname..." />
         <div class="status-picker">
-          ${Object.entries(STATUS).map(([key, val]) => `
-            <button class="status-btn ${p.status===key ? "sel-"+key : ""}" onclick="setEditStatus('${key}')">
+          ${Object.entries(STATUS).map(([key,val])=>`
+            <button class="status-btn ${p.status===key?"sel-"+key:""}" onclick="setEditStatus('${key}')">
               <span class="status-dot-sm" style="background:${val.dot}"></span>${val.label}
             </button>`).join("")}
         </div>
         <div>
           <textarea class="edit-note" id="edit-note" oninput="autoGrow(this)" placeholder="Eine Zeile = ein Bullet Point">${esc(rawNote)}</textarea>
           <div class="edit-note-hint">Eine Zeile = ein Bullet Point. Enter für neuen Punkt.</div>
+        </div>
+        <div>
+          <div class="edit-due-label">📅 Erinnerungsdatum (Kästchen wird orange wenn es näher rückt)</div>
+          <input type="date" class="edit-due" id="edit-due" value="${esc(p.due||"")}" />
         </div>
         <div class="edit-actions">
           <button class="btn-cancel" onclick="cancelEdit()">Abbrechen</button>
@@ -376,23 +406,20 @@ function startEdit(id) {
 function setEditStatus(status) {
   const p = projects.find(p=>p.id===editingId);
   if (!p) return;
-  const ta = document.getElementById("edit-note");
-  if (ta) p.bullets = rawToBullets(ta.value);
-  const ni = document.getElementById("edit-name");
-  if (ni) p.name = ni.value;
-  p.status = status;
-  render();
+  const ta = document.getElementById("edit-note"); if (ta) p.bullets = rawToBullets(ta.value);
+  const ni = document.getElementById("edit-name"); if (ni) p.name = ni.value;
+  const di = document.getElementById("edit-due"); if (di) p.due = di.value;
+  p.status = status; render();
 }
 
 function saveEdit(id) {
   const name = document.getElementById("edit-name").value.trim();
   const raw  = document.getElementById("edit-note").value;
+  const due  = document.getElementById("edit-due").value;
   if (!name) return;
   const p = projects.find(p=>p.id===id);
-  if (p) { p.name = name; p.bullets = rawToBullets(raw); }
-  editingId = null;
-  render();
-  scheduleSave();
+  if (p) { p.name = name; p.bullets = rawToBullets(raw); p.due = due; }
+  editingId = null; render(); scheduleSave();
 }
 
 function cancelEdit() { editingId = null; render(); }
@@ -400,13 +427,12 @@ function cancelEdit() { editingId = null; render(); }
 function deleteProject(id) {
   if (!confirm("Projekt wirklich löschen?")) return;
   projects = projects.filter(p=>p.id!==id);
-  render();
-  scheduleSave();
+  render(); scheduleSave();
 }
 
 function startAdd() {
   editingId = null;
-  newDraft = { name: "", rawNote: "", status: "green" };
+  newDraft = { name: "", rawNote: "", status: "green", due: "" };
   renderAddForm();
 }
 
@@ -416,8 +442,8 @@ function renderAddForm() {
       <div class="edit-form">
         <input class="edit-name" id="new-name" value="" placeholder="Projektname..." />
         <div class="status-picker">
-          ${Object.entries(STATUS).map(([key, val]) => `
-            <button class="status-btn ${newDraft.status===key ? "sel-"+key : ""}" onclick="setNewStatus('${key}')">
+          ${Object.entries(STATUS).map(([key,val])=>`
+            <button class="status-btn ${newDraft.status===key?"sel-"+key:""}" onclick="setNewStatus('${key}')">
               <span class="status-dot-sm" style="background:${val.dot}"></span>${val.label}
             </button>`).join("")}
         </div>
@@ -425,34 +451,35 @@ function renderAddForm() {
           <textarea class="edit-note" id="new-note" oninput="autoGrow(this)" placeholder="Eine Zeile = ein Bullet Point">${esc(newDraft.rawNote)}</textarea>
           <div class="edit-note-hint">Eine Zeile = ein Bullet Point. Enter für neuen Punkt.</div>
         </div>
+        <div>
+          <div class="edit-due-label">📅 Erinnerungsdatum (optional)</div>
+          <input type="date" class="edit-due" id="new-due" value="${esc(newDraft.due)}" />
+        </div>
         <div class="edit-actions">
           <button class="btn-cancel" onclick="cancelAdd()">Abbrechen</button>
           <button class="btn-save" onclick="confirmAdd()">Hinzufügen</button>
         </div>
       </div>
     </div>`;
-  const ta = document.getElementById("new-note");
-  if (ta) autoGrow(ta);
+  const ta = document.getElementById("new-note"); if (ta) autoGrow(ta);
   setTimeout(() => { const el = document.getElementById("new-name"); if(el) el.focus(); }, 50);
 }
 
 function setNewStatus(status) {
-  const ta = document.getElementById("new-note");
-  if (ta) newDraft.rawNote = ta.value;
-  const ni = document.getElementById("new-name");
-  if (ni) newDraft.name = ni.value;
-  newDraft.status = status;
-  renderAddForm();
+  const ta = document.getElementById("new-note"); if (ta) newDraft.rawNote = ta.value;
+  const ni = document.getElementById("new-name"); if (ni) newDraft.name = ni.value;
+  const di = document.getElementById("new-due"); if (di) newDraft.due = di.value;
+  newDraft.status = status; renderAddForm();
 }
 
 function confirmAdd() {
   const name = document.getElementById("new-name").value.trim();
   const raw  = document.getElementById("new-note").value;
+  const due  = document.getElementById("new-due").value;
   if (!name) return;
-  projects.push({ id: Date.now(), name, bullets: rawToBullets(raw), status: newDraft.status });
+  projects.push({ id: Date.now(), name, bullets: rawToBullets(raw), status: newDraft.status, due });
   document.getElementById("add-area").innerHTML = "";
-  render();
-  scheduleSave();
+  render(); scheduleSave();
 }
 
 function cancelAdd() { document.getElementById("add-area").innerHTML = ""; }
