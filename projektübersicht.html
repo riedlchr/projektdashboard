@@ -53,10 +53,17 @@
   .card-actions button { background: none; border: none; cursor: pointer; font-size: 14px; padding: 3px 5px; border-radius: 6px; opacity: 0.5; transition: opacity 0.15s; }
   .card-actions button:hover { opacity: 1; }
 
-  .card-bullets { margin-top: 8px; padding-left: 20px; }
-  .card-bullets ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 3px; }
-  .card-bullets li { font-size: 12px; color: #6b7280; line-height: 1.5; display: flex; gap: 6px; align-items: flex-start; }
-  .card-bullets li::before { content: "·"; color: #9ca3af; font-size: 15px; line-height: 1.3; flex-shrink: 0; }
+  .card-bullets { margin-top: 8px; padding-left: 4px; }
+  .card-bullets ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+  .card-bullets li { font-size: 12px; color: #6b7280; line-height: 1.4; display: flex; gap: 7px; align-items: flex-start; cursor: pointer; border-radius: 6px; padding: 2px 4px; transition: background 0.1s; }
+  .card-bullets li:hover { background: rgba(0,0,0,0.04); }
+  .card-bullets li:hover .cb-box { border-color: #6b7280; }
+  .cb-box { width: 13px; height: 13px; border: 1.5px solid #d1d5db; border-radius: 3px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: #fff; }
+  .cb-box.checking { border-color: #16a34a; background: #16a34a; }
+  .cb-check { display: none; color: #fff; font-size: 9px; font-weight: 700; }
+  .cb-box.checking .cb-check { display: block; }
+  .cb-label { flex: 1; }
+  .cb-label.checking { text-decoration: line-through; color: #9ca3af; }
 
   .card-dates { margin-top: 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
   .card-due { font-size: 11px; color: #9ca3af; }
@@ -362,7 +369,11 @@ function renderViewCard(p) {
   const el = endLabel(p.end);
   const bullets = p.bullets || [];
   const bulletsHtml = bullets.length
-    ? `<div class="card-bullets"><ul>${bullets.map(b=>`<li>${esc(b)}</li>`).join("")}</ul></div>` : "";
+    ? `<div class="card-bullets"><ul>${bullets.map((b,i)=>`
+        <li onclick="checkBullet(${p.id},${i},this)">
+          <div class="cb-box"><span class="cb-check">✓</span></div>
+          <span class="cb-label">${esc(b)}</span>
+        </li>`).join("")}</ul></div>` : "";
   const datesHtml = (dl || el) ? `
     <div class="card-dates">
       ${dl ? `<div class="card-due ${warning?"warning":""}">${dl}</div>` : ""}
@@ -433,6 +444,22 @@ function clearDate(fieldId) {
 function autoGrow(el) { el.style.height="auto"; el.style.height=el.scrollHeight+"px"; }
 function esc(str) { return (str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function rawToBullets(raw) { return (raw||"").split("\n").map(l=>l.replace(/^[-•·]\s*/,"").trim()).filter(Boolean); }
+
+function checkBullet(projectId, bulletIndex, liEl) {
+  const box = liEl.querySelector(".cb-box");
+  const label = liEl.querySelector(".cb-label");
+  box.classList.add("checking");
+  label.classList.add("checking");
+  liEl.style.pointerEvents = "none";
+  setTimeout(() => {
+    const p = projects.find(p => p.id === projectId);
+    if (p) {
+      p.bullets.splice(bulletIndex, 1);
+      render();
+      scheduleSave();
+    }
+  }, 500);
+}
 
 function setFilter(f) { filter=f; render(); }
 
