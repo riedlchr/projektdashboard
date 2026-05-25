@@ -177,12 +177,7 @@ async function load() {
         </div>`);
       });
 
-      if (notes) {
-        fieldRows.push(`<div class="card-field">
-          <div class="card-field-label">Notizen</div>
-          <div class="card-field-value">${esc(notes)}</div>
-        </div>`);
-      }
+      if (notes) {} // notes hidden
 
       const fieldsHtml = fieldRows.length
         ? `<div class="card-fields">${fieldRows.join("")}</div>` : "";
