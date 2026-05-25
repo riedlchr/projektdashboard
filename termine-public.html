@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ÖA Termine 2026 – Caritas St. Pölten</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f8f8f6; font-family: Helvetica, Arial, sans-serif; min-height: 100vh; color: #111; }
+
+  .header { background: #fff; border-bottom: 1.5px solid #e5e7eb; padding: 20px 24px; }
+  .header-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .header-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #9ca3af; text-transform: uppercase; margin-bottom: 3px; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #111; }
+  .header-meta { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+  .status { font-size: 12px; color: #9ca3af; text-align: right; }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* Table */
+  .table-wrap { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: #f8f8f6; }
+  th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #9ca3af; text-transform: uppercase; padding: 12px 16px; border-bottom: 1.5px solid #e5e7eb; white-space: nowrap; }
+  td { padding: 14px 16px; font-size: 13px; color: #374151; border-bottom: 1px solid #f3f4f6; vertical-align: top; line-height: 1.5; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  /* Date column */
+  .td-date { white-space: nowrap; font-weight: 600; color: #111; min-width: 110px; }
+  .td-date.overdue { color: #dc2626; }
+  .td-date.soon { color: #d97706; }
+  .date-day { font-size: 11px; font-weight: 400; color: #9ca3af; display: block; }
+
+  /* Name column */
+  .td-name { font-weight: 700; color: #111; min-width: 180px; }
+
+  /* Person */
+  .td-person { white-space: nowrap; }
+
+  /* Custom fields */
+  .td-field { color: #6b7280; }
+  .field-empty { color: #d1d5db; font-style: italic; }
+
+  /* Tag-style value */
+  .tag { display: inline-block; background: #f3f4f6; border-radius: 6px; padding: 2px 8px; font-size: 12px; color: #374151; }
+  .tag.highlight { background: #fef3c7; color: #d97706; }
+
+  /* Empty / loading */
+  .message { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 14px; }
+
+  /* Mobile: card layout */
+  @media (max-width: 700px) {
+    .table-wrap { background: transparent; border: none; border-radius: 0; overflow: visible; }
+    table, thead, tbody, th, td, tr { display: block; }
+    thead { display: none; }
+    tr { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; margin-bottom: 10px; padding: 14px 16px; }
+    tr:hover td { background: transparent; }
+    td { padding: 3px 0; border: none; font-size: 13px; }
+    td::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #9ca3af; margin-bottom: 2px; margin-top: 8px; }
+    td:first-child::before { margin-top: 0; }
+    .td-name { font-size: 15px; }
+  }
+
+  .updated { font-size: 11px; color: #d1d5db; text-align: center; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="header-label">Caritas St. Pölten · Öffentlichkeitsarbeit</div>
+      <h1>ÖA Termine 2026</h1>
+      <div class="header-meta" id="header-meta">Wird geladen…</div>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="table-wrap" id="table-wrap">
+    <div class="message">Termine werden geladen…</div>
+  </div>
+  <div class="updated" id="updated"></div>
+</div>
+
+<script>
+const API = "https://projektdashboard-theta.vercel.app/api/termine-public";
+
+const FIELDS_TO_SHOW = [
+  "Ort:",
+  "Channels",
+  "Hauptbereich:",
+  "weitere Bereiche:",
+  "Ansprechperson im Bereich:",
+  "Fotograf*in:",
+  "Ehrengäste (fix):",
+  "Ehrengäste (angefragt):",
+];
+
+function fmtDate(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr); d.setHours(12,0,0,0);
+  return {
+    full: d.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" }),
+    day:  d.toLocaleDateString("de-AT", { weekday: "long" }),
+    raw:  d,
+  };
+}
+
+function dateClass(dateStr) {
+  if (!dateStr) return "";
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / (1000*60*60*24));
+  if (diff < 0) return "overdue";
+  if (diff <= 14) return "soon";
+  return "";
+}
+
+function getCustomField(task, fieldName) {
+  const fields = task.custom_fields || [];
+  const f = fields.find(f => f.name && f.name.trim() === fieldName.trim());
+  if (!f) return null;
+  return f.display_value || f.text_value || f.enum_value?.name || null;
+}
+
+function esc(str) {
+  return (str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+async function load() {
+  try {
+    const res = await fetch(API);
+    const data = await res.json();
+    const tasks = (data.tasks || []).sort((a,b) => {
+      if (a.due_on && b.due_on) return new Date(a.due_on) - new Date(b.due_on);
+      if (a.due_on) return -1;
+      if (b.due_on) return 1;
+      return a.name.localeCompare(b.name, "de");
+    });
+
+    document.getElementById("header-meta").textContent =
+      tasks.length + " Termine · Stand: " + new Date().toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+
+    if (tasks.length === 0) {
+      document.getElementById("table-wrap").innerHTML = `<div class="message">Keine offenen Termine gefunden.</div>`;
+      return;
+    }
+
+    const rows = tasks.map(t => {
+      const dt = fmtDate(t.due_on);
+      const cls = dateClass(t.due_on);
+      const assignee = t.assignee?.name || "";
+      const notes = t.notes || "";
+
+      // Custom fields
+      const fieldCells = FIELDS_TO_SHOW.map(fname => {
+        const val = getCustomField(t, fname);
+        const label = fname.replace(/:$/, "").replace("*", "*");
+        if (!val || val === "—") {
+          return `<td data-label="${esc(label)}" class="td-field"><span class="field-empty">–</span></td>`;
+        }
+        // Tag-style for enum fields (like Fotograf*in)
+        const isTag = val.length < 30 && !val.includes(" ") || val === "nicht notwendig";
+        return `<td data-label="${esc(label)}" class="td-field">${isTag ? `<span class="tag ${val==='nicht notwendig'?'highlight':''}">${esc(val)}</span>` : esc(val)}</td>`;
+      }).join("");
+
+      return `<tr>
+        <td data-label="Datum" class="td-date ${cls}">
+          ${dt ? `${dt.full}<span class="date-day">${dt.day}</span>` : `<span class="field-empty">–</span>`}
+        </td>
+        <td data-label="Termin" class="td-name">${esc(t.name)}</td>
+        <td data-label="Verantwortlich" class="td-person">${esc(assignee)||`<span class="field-empty">–</span>`}</td>
+        ${fieldCells}
+        ${notes ? `<td data-label="Notizen" class="td-field">${esc(notes)}</td>` : `<td data-label="Notizen" class="td-field"><span class="field-empty">–</span></td>`}
+      </tr>`;
+    }).join("");
+
+    // Build header
+    const customHeaders = FIELDS_TO_SHOW.map(f => `<th>${esc(f.replace(/:$/,""))}</th>`).join("");
+
+    document.getElementById("table-wrap").innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Termin</th>
+            <th>Verantwortlich</th>
+            ${customHeaders}
+            <th>Notizen</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    document.getElementById("updated").textContent =
+      "Zuletzt aktualisiert: " + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
+
+  } catch(e) {
+    document.getElementById("table-wrap").innerHTML = `<div class="message">Fehler beim Laden der Termine.</div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>
