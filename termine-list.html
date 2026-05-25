@@ -16,14 +16,15 @@
 
   .container { max-width: 780px; margin: 0 auto; padding: 0 20px 60px; }
 
-  /* List */
+  .section-heading { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: #9ca3af; text-transform: uppercase; margin: 28px 0 10px; }
+  .section-heading:first-child { margin-top: 0; }
+
   .list { display: flex; flex-direction: column; gap: 8px; }
 
   .item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 16px; }
   .item.overdue { border-color: #fca5a5; background: #fef2f2; }
   .item.soon    { border-color: #fde68a; background: #fffbeb; }
 
-  /* Date block */
   .item-date { flex-shrink: 0; text-align: center; background: #f3f4f6; border-radius: 8px; padding: 6px 10px; min-width: 52px; }
   .item.overdue .item-date { background: #fee2e2; }
   .item.soon    .item-date { background: #fef3c7; }
@@ -37,21 +38,18 @@
   .item.soon .item-date-num,
   .item.soon .item-date-month { color: #d97706; }
 
-  /* Content */
   .item-content { flex: 1; min-width: 0; }
   .item-title { font-size: 15px; font-weight: 700; color: #111; line-height: 1.3; }
-  .item-weekday { font-size: 11px; color: #9ca3af; margin-top: 1px; margin-bottom: 8px; }
+  .item-weekday { font-size: 11px; color: #9ca3af; margin-top: 1px; margin-bottom: 6px; }
 
-  .item-fields { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .item-fields { display: flex; flex-wrap: wrap; gap: 5px 16px; }
   .item-field { display: flex; align-items: baseline; gap: 5px; }
   .item-field-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
   .item-field-value { font-size: 13px; color: #374151; }
   .tag { display: inline-block; background: #f3f4f6; border-radius: 6px; padding: 1px 7px; font-size: 12px; color: #374151; }
   .tag.highlight { background: #fef3c7; color: #d97706; }
 
-  .empty { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 14px; }
-  .section-heading { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: #9ca3af; text-transform: uppercase; margin: 24px 0 10px; }
-  .section-heading:first-child { margin-top: 0; }
+  .empty { color: #9ca3af; font-size: 13px; padding: 12px 0; }
   .updated { font-size: 11px; color: #d1d5db; text-align: center; margin-top: 20px; }
 </style>
 </head>
@@ -66,9 +64,7 @@
 </div>
 
 <div class="container">
-  <div class="list" id="list">
-    <div class="empty">Termine werden geladen…</div>
-  </div>
+  <div id="content"></div>
   <div class="updated" id="updated"></div>
 </div>
 
@@ -86,11 +82,22 @@ const FIELDS = [
   { key: "Ehrengäste (angefragt):",    label: "Ehrengäste (angefragt)" },
 ];
 
+function esc(str) {
+  return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function getCustomField(task, fieldName) {
+  const fields = task.custom_fields || [];
+  const f = fields.find(function(f) { return f.name && f.name.trim() === fieldName.trim(); });
+  if (!f) return null;
+  return f.display_value || f.text_value || (f.enum_value && f.enum_value.name) || null;
+}
+
 function dateClass(dateStr) {
   if (!dateStr) return "";
-  const today = new Date(); today.setHours(0,0,0,0);
-  const d = new Date(dateStr); d.setHours(0,0,0,0);
-  const diff = Math.round((d - today) / (1000*60*60*24));
+  var today = new Date(); today.setHours(0,0,0,0);
+  var d = new Date(dateStr); d.setHours(0,0,0,0);
+  var diff = Math.round((d - today) / (1000*60*60*24));
   if (diff < 0) return "overdue";
   if (diff <= 14) return "soon";
   return "";
@@ -98,7 +105,7 @@ function dateClass(dateStr) {
 
 function parsedDate(dateStr) {
   if (!dateStr) return null;
-  const d = new Date(dateStr); d.setHours(12,0,0,0);
+  var d = new Date(dateStr); d.setHours(12,0,0,0);
   return {
     day:     d.toLocaleDateString("de-AT", { weekday: "short" }),
     num:     d.getDate(),
@@ -108,78 +115,95 @@ function parsedDate(dateStr) {
   };
 }
 
-function getCustomField(task, fieldName) {
-  const fields = task.custom_fields || [];
-  const f = fields.find(f => f.name && f.name.trim() === fieldName.trim());
-  if (!f) return null;
-  return f.display_value || f.text_value || f.enum_value?.name || null;
+function sortTasks(a, b) {
+  if (a.due_on && b.due_on) return new Date(a.due_on) - new Date(b.due_on);
+  if (a.due_on) return -1;
+  if (b.due_on) return 1;
+  return a.name.localeCompare(b.name, "de");
 }
 
-function esc(str) {
-  return (str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function renderItem(t) {
+  var cls = dateClass(t.due_on);
+  var dt = parsedDate(t.due_on);
+  var assignee = t.assignee && t.assignee.name ? t.assignee.name : null;
+
+  var dateHtml;
+  if (dt) {
+    dateHtml = '<div class="item-date">'
+      + '<div class="item-date-day">' + esc(dt.day) + '</div>'
+      + '<div class="item-date-num">' + dt.num + '</div>'
+      + '<div class="item-date-month">' + esc(dt.month) + ' ' + dt.year + '</div>'
+      + '</div>';
+  } else {
+    dateHtml = '<div class="item-date"><div class="item-date-num">–</div></div>';
+  }
+
+  var fieldRows = [];
+  if (assignee) {
+    fieldRows.push('<div class="item-field">'
+      + '<div class="item-field-label">Verantwortlich</div>'
+      + '<div class="item-field-value">' + esc(assignee) + '</div>'
+      + '</div>');
+  }
+  FIELDS.forEach(function(f) {
+    var val = getCustomField(t, f.key);
+    if (!val || val === "—") return;
+    var isTag = val.length < 25;
+    var valHtml = isTag
+      ? '<span class="tag' + (val === "nicht notwendig" ? " highlight" : "") + '">' + esc(val) + '</span>'
+      : esc(val);
+    fieldRows.push('<div class="item-field">'
+      + '<div class="item-field-label">' + esc(f.label) + '</div>'
+      + '<div class="item-field-value">' + valHtml + '</div>'
+      + '</div>');
+  });
+
+  var fieldsHtml = fieldRows.length > 0 ? '<div class="item-fields">' + fieldRows.join("") + '</div>' : "";
+  var weekdayHtml = dt ? '<div class="item-weekday">' + esc(dt.weekday) + '</div>' : "";
+
+  return '<div class="item ' + cls + '">'
+    + dateHtml
+    + '<div class="item-content">'
+    + '<div class="item-title">' + esc(t.name) + '</div>'
+    + weekdayHtml
+    + fieldsHtml
+    + '</div></div>';
+}
+
+function renderSection(title, tasks) {
+  var html = '<div class="section-heading">' + esc(title) + '</div>';
+  if (!tasks || tasks.length === 0) {
+    return html + '<div class="empty">Keine offenen Termine.</div>';
+  }
+  var sorted = tasks.slice().sort(sortTasks);
+  html += '<div class="list">' + sorted.map(renderItem).join("") + '</div>';
+  return html;
 }
 
 async function load() {
   try {
-    const res = await fetch(API);
-    const data = await res.json();
+    var res = await fetch(API);
+    var data = await res.json();
 
-    const tasks2026 = (data["Termine 2026"] || []).sort(sortTasks);
-    const tasks2027 = (data["Termine 2027"] || []).sort(sortTasks);
-    const total = tasks2026.length + tasks2027.length;
+    var tasks2026 = data["Termine 2026"] || [];
+    var tasks2027 = data["Termine 2027"] || [];
+    var total = tasks2026.length + tasks2027.length;
 
     document.getElementById("header-meta").textContent =
-      total + " Termine · Stand: " +
-      new Date().toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" }) + ", " +
-      new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
+      total + " Termine · Stand: "
+      + new Date().toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" })
+      + ", "
+      + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
 
-    document.getElementById("list").innerHTML =
-      renderSection("Termine 2026", tasks2026) +
-      renderSection("Termine 2027", tasks2027);
+    document.getElementById("content").innerHTML =
+      renderSection("Termine 2026", tasks2026)
+      + renderSection("Termine 2027", tasks2027);
 
     document.getElementById("updated").textContent =
       "Zuletzt aktualisiert: " + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
 
   } catch(e) {
-    document.getElementById("list").innerHTML = `<div class="empty">Fehler beim Laden der Termine.</div>`;
-  }
-}
-
-function sortTasks(a, b) {
-  if (a.due_on && b.due_on) return new Date(a.due_on) - new Date(b.due_on);
-  if (a.due_on) return -1; if (b.due_on) return 1;
-  return a.name.localeCompare(b.name, "de");
-}
-
-function renderSection(title, tasks) {
-  const heading = `<div class="section-heading">${esc(title)}</div>`;
-  if (tasks.length === 0) {
-    return heading + `<div class="empty">Keine offenen Termine.</div>`;
-  }
-  return heading + tasks.map(renderItem).join("");
-}
-
-function renderItem(t) {
-  const cls = dateClass(t.due_on);
-  const dt = parsedDate(t.due_on);
-  const assignee = t.assignee?.name || null;
-  const dateHtml = dt
-    ? `<div class="item-date"><div class="item-date-day">${esc(dt.day)}</div><div class="item-date-num">${dt.num}</div><div class="item-date-month">${esc(dt.month)} ${dt.year}</div></div>`
-    : `<div class="item-date"><div class="item-date-num">–</div></div>`;
-  const fieldRows = [];
-  if (assignee) fieldRows.push(`<div class="item-field"><div class="item-field-label">Verantwortlich</div><div class="item-field-value">${esc(assignee)}</div></div>`);
-  FIELDS.forEach(({ key, label }) => {
-    const val = getCustomField(t, key);
-    if (!val || val === '—') return;
-    const isTag = val.length < 25;
-    const valHtml = isTag ? `<span class="tag ${val==='nicht notwendig'?'highlight':''}">${esc(val)}</span>` : esc(val);
-    fieldRows.push(`<div class="item-field"><div class="item-field-label">${esc(label)}</div><div class="item-field-value">${valHtml}</div></div>`);
-  });
-  return `<div class="item ${cls}">${dateHtml}<div class="item-content"><div class="item-title">${esc(t.name)}</div>${dt?`<div class="item-weekday">${esc(dt.weekday)}</div>`:''} ${fieldRows.length?`<div class="item-fields">${fieldRows.join('')}</div>`:''}</div></div>`;
-}
-
-  } catch(e) {
-    document.getElementById("list").innerHTML = `<div class="empty">Fehler beim Laden der Termine.</div>`;
+    document.getElementById("content").innerHTML = '<div class="empty">Fehler beim Laden der Termine.</div>';
   }
 }
 
