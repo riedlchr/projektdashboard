@@ -50,6 +50,8 @@
   .tag.highlight { background: #fef3c7; color: #d97706; }
 
   .empty { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 14px; }
+  .section-heading { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: #9ca3af; text-transform: uppercase; margin: 24px 0 10px; }
+  .section-heading:first-child { margin-top: 0; }
   .updated { font-size: 11px; color: #d1d5db; text-align: center; margin-top: 20px; }
 </style>
 </head>
@@ -121,60 +123,60 @@ async function load() {
   try {
     const res = await fetch(API);
     const data = await res.json();
-    const tasks = (data.tasks || []).sort((a,b) => {
-      if (a.due_on && b.due_on) return new Date(a.due_on) - new Date(b.due_on);
-      if (a.due_on) return -1; if (b.due_on) return 1;
-      return a.name.localeCompare(b.name, "de");
-    });
+
+    const tasks2026 = (data["Termine 2026"] || []).sort(sortTasks);
+    const tasks2027 = (data["Termine 2027"] || []).sort(sortTasks);
+    const total = tasks2026.length + tasks2027.length;
 
     document.getElementById("header-meta").textContent =
-      tasks.length + " Termine · Stand: " +
+      total + " Termine · Stand: " +
       new Date().toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" }) + ", " +
       new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
 
-    if (tasks.length === 0) {
-      document.getElementById("list").innerHTML = `<div class="empty">Keine offenen Termine gefunden.</div>`;
-      return;
-    }
+    document.getElementById("list").innerHTML =
+      renderSection("Termine 2026", tasks2026) +
+      renderSection("Termine 2027", tasks2027);
 
-    const items = tasks.map(t => {
-      const cls = dateClass(t.due_on);
-      const dt = parsedDate(t.due_on);
-      const assignee = t.assignee?.name || null;
-
-      const dateHtml = dt
-        ? `<div class="item-date">
-            <div class="item-date-day">${esc(dt.day)}</div>
-            <div class="item-date-num">${dt.num}</div>
-            <div class="item-date-month">${esc(dt.month)} ${dt.year}</div>
-           </div>`
-        : `<div class="item-date"><div class="item-date-num">–</div></div>`;
-
-      const fieldRows = [];
-      if (assignee) {
-        fieldRows.push(`<div class="item-field"><div class="item-field-label">Verantwortlich</div><div class="item-field-value">${esc(assignee)}</div></div>`);
-      }
-      FIELDS.forEach(({ key, label }) => {
-        const val = getCustomField(t, key);
-        if (!val || val === "—") return;
-        const isTag = val.length < 25;
-        const valHtml = isTag ? `<span class="tag ${val==='nicht notwendig'?'highlight':''}">${esc(val)}</span>` : esc(val);
-        fieldRows.push(`<div class="item-field"><div class="item-field-label">${esc(label)}</div><div class="item-field-value">${valHtml}</div></div>`);
-      });
-
-      return `<div class="item ${cls}">
-        ${dateHtml}
-        <div class="item-content">
-          <div class="item-title">${esc(t.name)}</div>
-          ${dt ? `<div class="item-weekday">${esc(dt.weekday)}</div>` : ""}
-          ${fieldRows.length ? `<div class="item-fields">${fieldRows.join("")}</div>` : ""}
-        </div>
-      </div>`;
-    }).join("");
-
-    document.getElementById("list").innerHTML = items;
     document.getElementById("updated").textContent =
       "Zuletzt aktualisiert: " + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
+
+  } catch(e) {
+    document.getElementById("list").innerHTML = `<div class="empty">Fehler beim Laden der Termine.</div>`;
+  }
+}
+
+function sortTasks(a, b) {
+  if (a.due_on && b.due_on) return new Date(a.due_on) - new Date(b.due_on);
+  if (a.due_on) return -1; if (b.due_on) return 1;
+  return a.name.localeCompare(b.name, "de");
+}
+
+function renderSection(title, tasks) {
+  const heading = `<div class="section-heading">${esc(title)}</div>`;
+  if (tasks.length === 0) {
+    return heading + `<div class="empty">Keine offenen Termine.</div>`;
+  }
+  return heading + tasks.map(renderItem).join("");
+}
+
+function renderItem(t) {
+  const cls = dateClass(t.due_on);
+  const dt = parsedDate(t.due_on);
+  const assignee = t.assignee?.name || null;
+  const dateHtml = dt
+    ? `<div class="item-date"><div class="item-date-day">${esc(dt.day)}</div><div class="item-date-num">${dt.num}</div><div class="item-date-month">${esc(dt.month)} ${dt.year}</div></div>`
+    : `<div class="item-date"><div class="item-date-num">–</div></div>`;
+  const fieldRows = [];
+  if (assignee) fieldRows.push(`<div class="item-field"><div class="item-field-label">Verantwortlich</div><div class="item-field-value">${esc(assignee)}</div></div>`);
+  FIELDS.forEach(({ key, label }) => {
+    const val = getCustomField(t, key);
+    if (!val || val === '—') return;
+    const isTag = val.length < 25;
+    const valHtml = isTag ? `<span class="tag ${val==='nicht notwendig'?'highlight':''}">${esc(val)}</span>` : esc(val);
+    fieldRows.push(`<div class="item-field"><div class="item-field-label">${esc(label)}</div><div class="item-field-value">${valHtml}</div></div>`);
+  });
+  return `<div class="item ${cls}">${dateHtml}<div class="item-content"><div class="item-title">${esc(t.name)}</div>${dt?`<div class="item-weekday">${esc(dt.weekday)}</div>`:''} ${fieldRows.length?`<div class="item-fields">${fieldRows.join('')}</div>`:''}</div></div>`;
+}
 
   } catch(e) {
     document.getElementById("list").innerHTML = `<div class="empty">Fehler beim Laden der Termine.</div>`;
