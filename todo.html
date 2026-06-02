@@ -107,6 +107,7 @@ window.addEventListener("load", () => {
   google.accounts.id.initialize({ client_id: CLIENT_ID, callback: () => {} });
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPE,
+    login_hint: "mail@christophriedl.at",
     callback: async (resp) => {
       if (resp.error) return;
       accessToken = resp.access_token;
