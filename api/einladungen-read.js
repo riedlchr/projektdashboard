@@ -13,7 +13,10 @@ export default async function handler(req, res) {
     });
     const data = await r.json();
     if (!data.result) return res.status(200).json({ events: [], customPersons: [] });
-    return res.status(200).json(JSON.parse(data.result));
+
+    // result may be a string (JSON) or already an object
+    const parsed = typeof data.result === "string" ? JSON.parse(data.result) : data.result;
+    return res.status(200).json(parsed);
   } catch(e) {
     return res.status(500).json({ error: e.message });
   }

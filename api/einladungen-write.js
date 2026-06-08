@@ -9,22 +9,25 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // Simple secret check so only your dashboard can write
   if (req.headers["x-write-secret"] !== WRITE_SECRET) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
   try {
-    const body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-    await fetch(KV_URL + "/set/einladungen", {
+    // Get body as string
+    const bodyStr = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+
+    // Upstash REST API: SET key value
+    const r = await fetch(KV_URL + "/set/einladungen", {
       method: "POST",
       headers: {
         Authorization: "Bearer " + KV_TOKEN,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(["einladungen", body])
+      body: JSON.stringify(bodyStr)
     });
-    return res.status(200).json({ ok: true });
+    const result = await r.json();
+    return res.status(200).json({ ok: true, result });
   } catch(e) {
     return res.status(500).json({ error: e.message });
   }
