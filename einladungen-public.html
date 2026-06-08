@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Einladungsübersicht – Caritas St. Pölten</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f8f8f6; font-family: Helvetica, Arial, sans-serif; min-height: 100vh; color: #111; }
+
+  .header { background: #fff; border-bottom: 1.5px solid #e5e7eb; padding: 16px 24px; margin-bottom: 24px; }
+  .header-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .header-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #9ca3af; text-transform: uppercase; margin-bottom: 2px; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #111; }
+  .header-meta { font-size: 12px; color: #9ca3af; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #f3f4f6; border-radius: 10px; padding: 4px; width: fit-content; }
+  .tab { padding: 7px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: #9ca3af; font-family: inherit; transition: all 0.15s; }
+  .tab.active { background: #fff; color: #111; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
+  .badge-eingeladen { background: #e0f2fe; color: #0369a1; }
+  .badge-zugesagt   { background: #dcfce7; color: #16a34a; }
+  .badge-abgesagt   { background: #fee2e2; color: #dc2626; }
+  .badge-ersatz     { background: #fef3c7; color: #d97706; }
+
+  .events { display: flex; flex-direction: column; gap: 12px; }
+  .event-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; overflow: hidden; }
+  .event-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .event-title { font-size: 15px; font-weight: 700; color: #111; }
+  .event-date { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+  .event-stats { display: flex; gap: 5px; }
+  .stat { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .stat-z { background: #dcfce7; color: #16a34a; }
+  .stat-a { background: #fee2e2; color: #dc2626; }
+  .stat-e { background: #e0f2fe; color: #0369a1; }
+  .stat-r { background: #fef3c7; color: #d97706; }
+
+  .event-body { border-top: 1px solid #f3f4f6; padding: 12px 18px; }
+  .guest-list { display: flex; flex-direction: column; gap: 6px; }
+  .guest-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .guest-name { color: #374151; }
+
+  .persons { display: flex; flex-wrap: wrap; gap: 10px; }
+  .person-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; flex: 1 1 240px; min-width: 200px; max-width: 320px; }
+  .person-name { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 10px; }
+  .person-event-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; margin-bottom: 5px; }
+  .person-event-name { color: #374151; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .person-empty { font-size: 12px; color: #d1d5db; }
+
+  .empty { color: #d1d5db; font-size: 13px; padding: 40px 0; text-align: center; }
+  .updated { font-size: 11px; color: #d1d5db; text-align: center; margin-top: 20px; }
+
+  .login-screen { text-align: center; padding: 80px 20px; }
+  .login-screen h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .login-screen p { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+  .btn-login-big { padding: 12px 28px; border-radius: 10px; border: 1.5px solid #e5e7eb; background: #fff; color: #111; cursor: pointer; font-size: 15px; font-weight: 600; font-family: inherit; }
+
+  @media (max-width: 600px) { .person-card { flex: 1 1 100%; max-width: 100%; } }
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen" style="display:none">
+  <h2>Einladungsübersicht</h2>
+  <p>Bitte melde dich an um die Übersicht zu sehen.</p>
+  <button class="btn-login-big" onclick="signIn()">🔐 Mit Google anmelden</button>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <div class="header-label">Caritas St. Pölten · Nur lesen</div>
+        <h1>Einladungsübersicht</h1>
+      </div>
+      <div class="header-meta" id="header-meta"></div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('events')" id="tab-events">Nach Events</button>
+      <button class="tab" onclick="switchTab('persons')" id="tab-persons">Nach Personen</button>
+    </div>
+    <div id="view-events"></div>
+    <div id="view-persons" style="display:none"></div>
+    <div class="updated" id="updated"></div>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = "907159149164-mmpm2dntmhad9qg304dadmkgid5skacb.apps.googleusercontent.com";
+const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const FILE_NAME = "einladungen.json";
+
+const STATUS_LABELS = { eingeladen:"Eingeladen", zugesagt:"Zugesagt", abgesagt:"Abgesagt", ersatz:"Schickt Ersatz" };
+
+let tokenClient, accessToken = null;
+let data = { events: [], customPersons: [] };
+
+window.addEventListener("load", () => {
+  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: () => {} });
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPE,
+    callback: async (resp) => {
+      if (resp.error) return;
+      accessToken = resp.access_token;
+      localStorage.setItem("einladungen_pub_signed_in", "1");
+      showApp();
+      await loadData();
+    }
+  });
+  if (localStorage.getItem("einladungen_pub_signed_in") === "1") {
+    showApp();
+    tokenClient.requestAccessToken({ prompt: "" });
+  } else {
+    document.getElementById("login-screen").style.display = "";
+  }
+});
+
+function signIn() { tokenClient.requestAccessToken({ prompt: "consent" }); }
+function showApp() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "";
+}
+
+async function loadData() {
+  try {
+    const res = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27"+FILE_NAME+"%27&fields=files(id)",
+      { headers: { Authorization: "Bearer "+accessToken } });
+    const d = await res.json();
+    if (d.files && d.files.length) {
+      const r = await fetch("https://www.googleapis.com/drive/v3/files/"+d.files[0].id+"?alt=media",
+        { headers: { Authorization: "Bearer "+accessToken } });
+      data = await r.json();
+      if (!data.events) data.events = [];
+      if (!data.customPersons) data.customPersons = [];
+    }
+  } catch(e) {}
+  render();
+  document.getElementById("updated").textContent = "Stand: " + new Date().toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" }) + ", " + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
+  document.getElementById("header-meta").textContent = data.events.length + " Events";
+}
+
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmtDate(d) {
+  if (!d) return "";
+  const dt = new Date(d); dt.setHours(12);
+  return dt.toLocaleDateString("de-AT", { weekday:"short", day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
+function switchTab(tab) {
+  document.getElementById("tab-events").classList.toggle("active", tab === "events");
+  document.getElementById("tab-persons").classList.toggle("active", tab === "persons");
+  document.getElementById("view-events").style.display = tab === "events" ? "" : "none";
+  document.getElementById("view-persons").style.display = tab === "persons" ? "" : "none";
+}
+
+function render() {
+  renderEvents();
+  renderPersons();
+}
+
+function renderEvents() {
+  const el = document.getElementById("view-events");
+  if (!data.events.length) { el.innerHTML = '<div class="empty">Noch keine Events angelegt.</div>'; return; }
+  const sorted = [...data.events].sort((a,b) => { if(a.date&&b.date) return new Date(a.date)-new Date(b.date); if(a.date) return -1; if(b.date) return 1; return 0; });
+  let html = '<div class="events">';
+  sorted.forEach(ev => {
+    const guests = ev.guests || [];
+    const counts = { zugesagt:0, abgesagt:0, eingeladen:0, ersatz:0 };
+    guests.forEach(g => { if(counts[g.status]!==undefined) counts[g.status]++; });
+    html += '<div class="event-card"><div class="event-header">';
+    html += '<div><div class="event-title">'+esc(ev.title)+'</div><div class="event-date">'+fmtDate(ev.date)+'</div></div>';
+    html += '<div class="event-stats">';
+    if(counts.zugesagt)   html += '<span class="stat stat-z">✓ '+counts.zugesagt+'</span>';
+    if(counts.abgesagt)   html += '<span class="stat stat-a">✗ '+counts.abgesagt+'</span>';
+    if(counts.eingeladen) html += '<span class="stat stat-e">✉ '+counts.eingeladen+'</span>';
+    if(counts.ersatz)     html += '<span class="stat stat-r">⇄ '+counts.ersatz+'</span>';
+    html += '</div></div>';
+    if (guests.length > 0) {
+      html += '<div class="event-body"><div class="guest-list">';
+      guests.forEach(g => {
+        html += '<div class="guest-row"><span class="guest-name">'+esc(g.name)+'</span><span class="badge badge-'+g.status+'">'+STATUS_LABELS[g.status]+'</span></div>';
+      });
+      html += '</div></div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderPersons() {
+  const el = document.getElementById("view-persons");
+  const allPersons = [...new Set([...data.events.flatMap(ev => (ev.guests||[]).map(g => g.name)), ...(data.customPersons||[])])].sort();
+  if (!allPersons.length) { el.innerHTML = '<div class="empty">Keine Personen vorhanden.</div>'; return; }
+  let html = '<div class="persons">';
+  allPersons.forEach(person => {
+    const appearances = data.events.filter(ev => (ev.guests||[]).find(g => g.name === person))
+      .map(ev => ({ title: ev.title, date: ev.date, status: ev.guests.find(g => g.name === person).status }))
+      .sort((a,b) => { if(a.date&&b.date) return new Date(a.date)-new Date(b.date); return 0; });
+    html += '<div class="person-card"><div class="person-name">'+esc(person)+'</div>';
+    if (!appearances.length) { html += '<div class="person-empty">Noch nicht eingeladen.</div>'; }
+    else {
+      appearances.forEach(a => {
+        html += '<div class="person-event-row"><span class="person-event-name">'+esc(a.title)+'</span>';
+        html += '<span style="display:flex;align-items:center;gap:5px;"><span style="font-size:11px;color:#9ca3af;">'+fmtDate(a.date)+'</span><span class="badge badge-'+a.status+'">'+STATUS_LABELS[a.status]+'</span></span></div>';
+      });
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+</script>
+</body>
+</html>

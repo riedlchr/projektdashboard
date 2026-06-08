@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Einladungsmanagement</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f8f8f6; font-family: Helvetica, Arial, sans-serif; min-height: 100vh; color: #111; }
+
+  /* ── Header ── */
+  .header { background: #fff; border-bottom: 1.5px solid #e5e7eb; padding: 16px 24px; }
+  .header-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .header-left .label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #9ca3af; text-transform: uppercase; margin-bottom: 2px; }
+  .header-left h1 { font-size: 20px; font-weight: 700; color: #111; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+  .sync-dot.ok { background: #16a34a; }
+  .sync-dot.busy { background: #f59e0b; animation: pulse 1s infinite; }
+  .sync-dot.err { background: #dc2626; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .sync-label { font-size: 12px; color: #9ca3af; }
+  .btn-logout { background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 12px; font-family: inherit; }
+
+  /* ── Tabs ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px 20px 60px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #f3f4f6; border-radius: 10px; padding: 4px; width: fit-content; }
+  .tab { padding: 7px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: #9ca3af; font-family: inherit; transition: all 0.15s; }
+  .tab.active { background: #fff; color: #111; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  /* ── Status badges ── */
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
+  .badge-eingeladen { background: #e0f2fe; color: #0369a1; }
+  .badge-zugesagt   { background: #dcfce7; color: #16a34a; }
+  .badge-abgesagt   { background: #fee2e2; color: #dc2626; }
+  .badge-ersatz     { background: #fef3c7; color: #d97706; }
+
+  /* ── Event cards ── */
+  .events { display: flex; flex-direction: column; gap: 12px; }
+  .event-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; overflow: hidden; }
+  .event-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; user-select: none; }
+  .event-header:hover { background: #fafafa; }
+  .event-title { font-size: 15px; font-weight: 700; color: #111; }
+  .event-date { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+  .event-meta { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .event-stats { display: flex; gap: 5px; }
+  .stat { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .stat-z { background: #dcfce7; color: #16a34a; }
+  .stat-a { background: #fee2e2; color: #dc2626; }
+  .stat-e { background: #e0f2fe; color: #0369a1; }
+  .stat-r { background: #fef3c7; color: #d97706; }
+  .event-actions { display: flex; gap: 4px; }
+  .btn-icon { background: none; border: none; cursor: pointer; font-size: 14px; padding: 4px 6px; border-radius: 6px; opacity: 0.4; transition: opacity 0.15s; }
+  .btn-icon:hover { opacity: 1; }
+  .chevron { font-size: 12px; color: #9ca3af; transition: transform 0.2s; }
+  .chevron.open { transform: rotate(180deg); }
+
+  .event-body { border-top: 1px solid #f3f4f6; padding: 14px 18px; display: none; }
+  .event-body.open { display: block; }
+
+  .guests-table { width: 100%; border-collapse: collapse; }
+  .guests-table th { text-align: left; font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 10px; }
+  .guests-table td { padding: 8px 10px; font-size: 13px; border-top: 1px solid #f3f4f6; vertical-align: middle; }
+  .guests-table tr:first-child td { border-top: none; }
+
+  .status-select { font-size: 12px; font-weight: 700; border: 1.5px solid #e5e7eb; border-radius: 20px; padding: 3px 10px; font-family: inherit; cursor: pointer; outline: none; background: #f9fafb; }
+  .status-select.eingeladen { border-color: #7dd3fc; color: #0369a1; background: #e0f2fe; }
+  .status-select.zugesagt   { border-color: #86efac; color: #16a34a; background: #dcfce7; }
+  .status-select.abgesagt   { border-color: #fca5a5; color: #dc2626; background: #fee2e2; }
+  .status-select.ersatz     { border-color: #fde68a; color: #d97706; background: #fef3c7; }
+
+  .btn-remove-guest { background: none; border: none; cursor: pointer; color: #d1d5db; font-size: 14px; padding: 2px 5px; border-radius: 4px; }
+  .btn-remove-guest:hover { color: #dc2626; }
+
+  .add-guest-row { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .guest-select { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; font-family: inherit; outline: none; background: #fff; flex: 1; min-width: 180px; }
+  .btn-add-guest { padding: 6px 14px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; white-space: nowrap; }
+
+  /* ── Personen-Ansicht ── */
+  .persons { display: flex; flex-wrap: wrap; gap: 10px; }
+  .person-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; flex: 1 1 260px; min-width: 220px; max-width: 340px; }
+  .person-name { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 10px; }
+  .person-events { display: flex; flex-direction: column; gap: 5px; }
+  .person-event-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+  .person-event-name { color: #374151; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .person-event-date { color: #9ca3af; font-size: 11px; white-space: nowrap; }
+  .person-empty { font-size: 12px; color: #d1d5db; }
+
+  /* ── Add event form ── */
+  .add-event-btn { display: flex; align-items: center; gap: 8px; padding: 12px 18px; border: 2px dashed #d1d5db; border-radius: 14px; background: transparent; color: #9ca3af; font-size: 14px; cursor: pointer; font-family: inherit; width: 100%; transition: all 0.15s; }
+  .add-event-btn:hover { border-color: #9ca3af; color: #6b7280; }
+  .add-event-form { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .form-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+  .form-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; font-family: inherit; color: #111; outline: none; background: #fff; transition: border-color 0.15s; }
+  .form-input:focus { border-color: #9ca3af; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-cancel { padding: 6px 14px; border-radius: 8px; border: 1.5px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer; font-size: 13px; font-family: inherit; }
+  .btn-save   { padding: 6px 14px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; }
+
+  /* ── Add person form ── */
+  .add-person-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid #f3f4f6; display: flex; gap: 8px; align-items: center; }
+  .add-person-input { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; font-family: inherit; color: #111; outline: none; background: #fafafa; flex: 1; }
+  .add-person-input:focus { border-color: #9ca3af; }
+
+  /* ── Login ── */
+  .login-screen { text-align: center; padding: 80px 20px; }
+  .login-screen h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 8px; }
+  .login-screen p { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.6; }
+  .btn-login-big { padding: 12px 28px; border-radius: 10px; border: 1.5px solid #e5e7eb; background: #fff; color: #111; cursor: pointer; font-size: 15px; font-weight: 600; font-family: inherit; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+  .empty { color: #d1d5db; font-size: 13px; padding: 20px 0; text-align: center; width: 100%; }
+
+  @media (max-width: 600px) {
+    .person-card { flex: 1 1 100%; max-width: 100%; }
+    .form-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen" style="display:none">
+  <h2>Einladungsmanagement</h2>
+  <p>Melde dich mit deinem Google-Konto an.</p>
+  <button class="btn-login-big" onclick="signIn()">🔐 Mit Google anmelden</button>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <div class="label">Caritas St. Pölten</div>
+        <h1>Einladungsmanagement</h1>
+      </div>
+      <div class="header-right">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span class="sync-label" id="sync-label">Verbinde…</span>
+        <button class="btn-logout" onclick="signOut()">Abmelden</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('events')" id="tab-events">Nach Events</button>
+      <button class="tab" onclick="switchTab('persons')" id="tab-persons">Nach Personen</button>
+    </div>
+
+    <div id="view-events"></div>
+    <div id="view-persons" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = "907159149164-mmpm2dntmhad9qg304dadmkgid5skacb.apps.googleusercontent.com";
+const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const FILE_NAME = "einladungen.json";
+
+// Vordefinierte Personen
+const PREDEFINED = [
+  "LH Johanna Mikl-Leitner",
+  "LH-Stv. Stephan Pernkopf",
+  "LH-Stv. Udo Landbauer",
+  "LR Ludwig Schleritzko",
+  "LR Christiane Teschl-Hofmeister",
+  "LR Susanne Rosenkranz",
+  "LR Christoph Luisser",
+  "LR Sven Hergovich",
+  "LR Eva Prischl",
+  "LP Karl Wilfing",
+  "2. LP Gottfried Waldhäusl",
+  "3. LP Elvira Schmidt",
+];
+
+const STATUS_LABELS = {
+  eingeladen: "Eingeladen",
+  zugesagt:   "Zugesagt",
+  abgesagt:   "Abgesagt",
+  ersatz:     "Schickt Ersatz",
+};
+
+let tokenClient, accessToken = null, fileId = null, saveTimer = null;
+let data = { events: [], customPersons: [] };
+let activeTab = "events";
+let addingEvent = false;
+let openEvents = {};
+
+// ── Auth ──────────────────────────────────────────────────────
+window.addEventListener("load", () => {
+  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: () => {} });
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID, scope: SCOPE,
+    login_hint: "mail@christophriedl.at",
+    callback: async (resp) => {
+      if (resp.error) { setSyncState("err", "Fehler"); return; }
+      accessToken = resp.access_token;
+      localStorage.setItem("einladungen_signed_in", "1");
+      showApp();
+      await loadFromDrive();
+    }
+  });
+  if (localStorage.getItem("einladungen_signed_in") === "1") {
+    showApp(); setSyncState("busy", "Verbinde…");
+    tokenClient.requestAccessToken({ prompt: "" });
+  } else {
+    document.getElementById("login-screen").style.display = "";
+  }
+});
+
+function signIn() { tokenClient.requestAccessToken({ prompt: "consent" }); }
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null; fileId = null;
+  localStorage.removeItem("einladungen_signed_in");
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "";
+}
+function showApp() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "";
+}
+
+// ── Drive ─────────────────────────────────────────────────────
+function setSyncState(state, label) {
+  const dot = document.getElementById("sync-dot");
+  const lbl = document.getElementById("sync-label");
+  if (!dot) return;
+  dot.className = "sync-dot" + (state ? " "+state : "");
+  lbl.textContent = label;
+}
+
+async function driveReq(method, url, body) {
+  const headers = { Authorization: "Bearer " + accessToken };
+  if (body) headers["Content-Type"] = "application/json";
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (!res.ok) throw new Error(await res.text());
+  return res;
+}
+
+async function loadFromDrive() {
+  setSyncState("busy", "Lade…");
+  try {
+    const res = await driveReq("GET", "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27"+FILE_NAME+"%27&fields=files(id)");
+    const d = await res.json();
+    if (d.files && d.files.length) {
+      fileId = d.files[0].id;
+      const r = await driveReq("GET", "https://www.googleapis.com/drive/v3/files/"+fileId+"?alt=media");
+      data = await r.json();
+      if (!data.events) data.events = [];
+      if (!data.customPersons) data.customPersons = [];
+    } else {
+      data = { events: [], customPersons: [] };
+      fileId = await createFile(data);
+    }
+    setSyncState("ok", "Gespeichert");
+    render();
+  } catch(e) {
+    setSyncState("err", "Fehler beim Laden");
+    render();
+  }
+}
+
+async function createFile(content) {
+  const meta = { name: FILE_NAME, parents: ["appDataFolder"] };
+  const form = new FormData();
+  form.append("metadata", new Blob([JSON.stringify(meta)], { type: "application/json" }));
+  form.append("file", new Blob([JSON.stringify(content)], { type: "application/json" }));
+  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+    { method: "POST", headers: { Authorization: "Bearer "+accessToken }, body: form });
+  return (await res.json()).id;
+}
+
+function scheduleSave() {
+  setSyncState("busy", "Speichert…");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      if (!fileId) fileId = await createFile(data);
+      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+fileId+"?uploadType=media",
+        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      setSyncState("ok", "Gespeichert · "+new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" }));
+    } catch(e) { setSyncState("err", "Speichern fehlgeschlagen"); }
+  }, 1000);
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function allPersons() { return [...PREDEFINED, ...data.customPersons]; }
+function fmtDate(d) {
+  if (!d) return "";
+  const dt = new Date(d); dt.setHours(12);
+  return dt.toLocaleDateString("de-AT", { weekday:"short", day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
+// ── Tabs ──────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById("tab-events").classList.toggle("active", tab === "events");
+  document.getElementById("tab-persons").classList.toggle("active", tab === "persons");
+  document.getElementById("view-events").style.display = tab === "events" ? "" : "none";
+  document.getElementById("view-persons").style.display = tab === "persons" ? "" : "none";
+}
+
+// ── Render ────────────────────────────────────────────────────
+function render() { renderEvents(); renderPersons(); }
+
+function renderEvents() {
+  const el = document.getElementById("view-events");
+  let html = '<div class="events">';
+
+  // Sort events by date
+  const sorted = [...data.events].sort((a,b) => {
+    if (a.date && b.date) return new Date(a.date) - new Date(b.date);
+    if (a.date) return -1; if (b.date) return 1; return 0;
+  });
+
+  sorted.forEach(ev => {
+    const guests = ev.guests || [];
+    const counts = { zugesagt:0, abgesagt:0, eingeladen:0, ersatz:0 };
+    guests.forEach(g => { if (counts[g.status] !== undefined) counts[g.status]++; });
+    const isOpen = openEvents[ev.id];
+
+    html += '<div class="event-card">';
+    html += '<div class="event-header" onclick="toggleEvent(\''+ev.id+'\')">';
+    html += '<div><div class="event-title">'+esc(ev.title)+'</div>';
+    html += '<div class="event-date">'+fmtDate(ev.date)+'</div></div>';
+    html += '<div class="event-meta">';
+    html += '<div class="event-stats">';
+    if (counts.zugesagt)   html += '<span class="stat stat-z">✓ '+counts.zugesagt+'</span>';
+    if (counts.abgesagt)   html += '<span class="stat stat-a">✗ '+counts.abgesagt+'</span>';
+    if (counts.eingeladen) html += '<span class="stat stat-e">✉ '+counts.eingeladen+'</span>';
+    if (counts.ersatz)     html += '<span class="stat stat-r">⇄ '+counts.ersatz+'</span>';
+    html += '</div>';
+    html += '<div class="event-actions">';
+    html += '<button class="btn-icon" onclick="event.stopPropagation();deleteEvent(\''+ev.id+'\')" title="Löschen">🗑️</button>';
+    html += '</div>';
+    html += '<span class="chevron'+(isOpen?' open':'')+'">▼</span>';
+    html += '</div></div>';
+
+    html += '<div class="event-body'+(isOpen?' open':'')+'">';
+    if (guests.length > 0) {
+      html += '<table class="guests-table"><thead><tr><th>Name</th><th>Status</th><th></th></tr></thead><tbody>';
+      guests.forEach((g, gi) => {
+        html += '<tr><td>'+esc(g.name)+'</td>';
+        html += '<td><select class="status-select '+g.status+'" onchange="setGuestStatus(\''+ev.id+'\','+gi+',this.value)">';
+        Object.entries(STATUS_LABELS).forEach(([val, lbl]) => {
+          html += '<option value="'+val+'"'+(g.status===val?' selected':'')+'>'+lbl+'</option>';
+        });
+        html += '</select></td>';
+        html += '<td><button class="btn-remove-guest" onclick="removeGuest(\''+ev.id+'\','+gi+')" title="Entfernen">✕</button></td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+    } else {
+      html += '<div style="font-size:13px;color:#d1d5db;padding:8px 0;">Noch keine Gäste eingeladen.</div>';
+    }
+
+    // Add guest row
+    html += '<div class="add-guest-row">';
+    html += '<select class="guest-select" id="gs-'+ev.id+'">';
+    html += '<option value="">– Person auswählen –</option>';
+    const alreadyAdded = guests.map(g => g.name);
+    allPersons().forEach(p => {
+      if (!alreadyAdded.includes(p)) {
+        html += '<option value="'+esc(p)+'">'+esc(p)+'</option>';
+      }
+    });
+    html += '</select>';
+    html += '<button class="btn-add-guest" onclick="addGuest(\''+ev.id+'\')">+ Einladen</button>';
+    html += '</div>';
+    html += '</div></div>';
+  });
+
+  // Add event button / form
+  if (addingEvent) {
+    html += '<div class="add-event-form">';
+    html += '<div class="form-row">';
+    html += '<div class="form-field"><div class="form-label">Titel des Events</div><input class="form-input" id="new-event-title" placeholder="z.B. Jubiläumsfeier 75 Jahre..." /></div>';
+    html += '<div class="form-field" style="max-width:180px"><div class="form-label">Datum</div><input type="date" class="form-input" id="new-event-date" /></div>';
+    html += '</div>';
+    html += '<div class="form-actions"><button class="btn-cancel" onclick="cancelAddEvent()">Abbrechen</button><button class="btn-save" onclick="confirmAddEvent()">Event anlegen</button></div>';
+    html += '</div>';
+  } else {
+    html += '<button class="add-event-btn" onclick="startAddEvent()">+ Neues Event anlegen</button>';
+  }
+
+  html += '</div>';
+
+  // Add custom person section
+  html += '<div class="add-person-section">';
+  html += '<span style="font-size:12px;color:#9ca3af;white-space:nowrap;">Eigene Person hinzufügen:</span>';
+  html += '<input class="add-person-input" id="new-person-input" placeholder="Name eingeben…" onkeydown="if(event.key===\'Enter\')addCustomPerson()" />';
+  html += '<button class="btn-save" style="white-space:nowrap" onclick="addCustomPerson()">+ Hinzufügen</button>';
+  html += '</div>';
+  if (data.customPersons.length > 0) {
+    html += '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">';
+    data.customPersons.forEach((p, i) => {
+      html += '<span style="background:#f3f4f6;border-radius:20px;padding:3px 10px;font-size:12px;display:flex;align-items:center;gap:6px;">'+esc(p);
+      html += '<button onclick="removeCustomPerson('+i+')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:12px;padding:0;">✕</button></span>';
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function renderPersons() {
+  const el = document.getElementById("view-persons");
+  const persons = allPersons();
+  if (persons.length === 0) {
+    el.innerHTML = '<div class="empty">Keine Personen vorhanden.</div>';
+    return;
+  }
+
+  let html = '<div class="persons">';
+  persons.forEach(person => {
+    const appearances = [];
+    data.events.forEach(ev => {
+      const g = (ev.guests||[]).find(g => g.name === person);
+      if (g) appearances.push({ title: ev.title, date: ev.date, status: g.status });
+    });
+    appearances.sort((a,b) => {
+      if (a.date && b.date) return new Date(a.date) - new Date(b.date);
+      return 0;
+    });
+
+    html += '<div class="person-card">';
+    html += '<div class="person-name">'+esc(person)+'</div>';
+    if (appearances.length === 0) {
+      html += '<div class="person-empty">Noch zu keinem Event eingeladen.</div>';
+    } else {
+      html += '<div class="person-events">';
+      appearances.forEach(a => {
+        html += '<div class="person-event-row">';
+        html += '<div class="person-event-name">'+esc(a.title)+'</div>';
+        html += '<div style="display:flex;align-items:center;gap:6px;">';
+        if (a.date) html += '<div class="person-event-date">'+fmtDate(a.date)+'</div>';
+        html += '<span class="badge badge-'+a.status+'">'+STATUS_LABELS[a.status]+'</span>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── Event actions ─────────────────────────────────────────────
+function toggleEvent(id) {
+  openEvents[id] = !openEvents[id];
+  renderEvents();
+}
+
+function startAddEvent() { addingEvent = true; renderEvents(); setTimeout(() => { const el = document.getElementById("new-event-title"); if(el) el.focus(); }, 50); }
+function cancelAddEvent() { addingEvent = false; renderEvents(); }
+
+function confirmAddEvent() {
+  const title = document.getElementById("new-event-title").value.trim();
+  const date  = document.getElementById("new-event-date").value;
+  if (!title) return;
+  const id = Date.now().toString();
+  data.events.push({ id, title, date, guests: [] });
+  openEvents[id] = true;
+  addingEvent = false;
+  render();
+  scheduleSave();
+}
+
+function deleteEvent(id) {
+  if (!confirm("Event wirklich löschen?")) return;
+  data.events = data.events.filter(e => e.id !== id);
+  render();
+  scheduleSave();
+}
+
+function addGuest(eventId) {
+  const sel = document.getElementById("gs-"+eventId);
+  if (!sel || !sel.value) return;
+  const ev = data.events.find(e => e.id === eventId);
+  if (!ev) return;
+  if (!ev.guests) ev.guests = [];
+  if (ev.guests.find(g => g.name === sel.value)) return;
+  ev.guests.push({ name: sel.value, status: "eingeladen" });
+  render();
+  scheduleSave();
+}
+
+function removeGuest(eventId, guestIndex) {
+  const ev = data.events.find(e => e.id === eventId);
+  if (!ev) return;
+  ev.guests.splice(guestIndex, 1);
+  render();
+  scheduleSave();
+}
+
+function setGuestStatus(eventId, guestIndex, status) {
+  const ev = data.events.find(e => e.id === eventId);
+  if (!ev || !ev.guests[guestIndex]) return;
+  ev.guests[guestIndex].status = status;
+  // Update select styling without full re-render
+  const sel = document.querySelectorAll(".status-select")[guestIndex];
+  // Just save & re-render persons view
+  scheduleSave();
+  renderPersons();
+  // Update select class
+  const allSelects = document.querySelectorAll(".status-select");
+  allSelects.forEach(s => {
+    s.className = "status-select " + s.value;
+  });
+}
+
+function addCustomPerson() {
+  const input = document.getElementById("new-person-input");
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+  if (PREDEFINED.includes(name) || data.customPersons.includes(name)) {
+    input.value = "";
+    return;
+  }
+  data.customPersons.push(name);
+  input.value = "";
+  render();
+  scheduleSave();
+}
+
+function removeCustomPerson(index) {
+  data.customPersons.splice(index, 1);
+  render();
+  scheduleSave();
+}
+</script>
+</body>
+</html>
