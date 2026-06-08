@@ -31,10 +31,11 @@
 
   /* ── Status badges ── */
   .badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
-  .badge-eingeladen { background: #e0f2fe; color: #0369a1; }
-  .badge-zugesagt   { background: #dcfce7; color: #16a34a; }
-  .badge-abgesagt   { background: #fee2e2; color: #dc2626; }
-  .badge-ersatz     { background: #fef3c7; color: #d97706; }
+  .badge-eingeladen  { background: #e0f2fe; color: #0369a1; }
+  .badge-zugesagt    { background: #dcfce7; color: #16a34a; }
+  .badge-abgesagt    { background: #fee2e2; color: #dc2626; }
+  .badge-ersatz      { background: #fef3c7; color: #d97706; }
+  .badge-vertretung  { background: #f3e8ff; color: #7c3aed; }
 
   /* ── Event cards ── */
   .events { display: flex; flex-direction: column; gap: 12px; }
@@ -65,10 +66,16 @@
   .guests-table tr:first-child td { border-top: none; }
 
   .status-select { font-size: 12px; font-weight: 700; border: 1.5px solid #e5e7eb; border-radius: 20px; padding: 3px 10px; font-family: inherit; cursor: pointer; outline: none; background: #f9fafb; }
-  .status-select.eingeladen { border-color: #7dd3fc; color: #0369a1; background: #e0f2fe; }
-  .status-select.zugesagt   { border-color: #86efac; color: #16a34a; background: #dcfce7; }
-  .status-select.abgesagt   { border-color: #fca5a5; color: #dc2626; background: #fee2e2; }
-  .status-select.ersatz     { border-color: #fde68a; color: #d97706; background: #fef3c7; }
+  .status-select.eingeladen  { border-color: #7dd3fc; color: #0369a1; background: #e0f2fe; }
+  .status-select.zugesagt    { border-color: #86efac; color: #16a34a; background: #dcfce7; }
+  .status-select.abgesagt    { border-color: #fca5a5; color: #dc2626; background: #fee2e2; }
+  .status-select.ersatz      { border-color: #fde68a; color: #d97706; background: #fef3c7; }
+  .status-select.vertretung  { border-color: #d8b4fe; color: #7c3aed; background: #f3e8ff; }
+
+  .event-note { font-size: 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 7px 10px; font-family: inherit; color: #374151; resize: none; outline: none; line-height: 1.5; background: #fafafa; width: 100%; overflow: hidden; min-height: 40px; margin-top: 10px; }
+  .event-note:focus { border-color: #9ca3af; }
+  .event-note-label { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; display: block; }
+  .guests-table td:first-child { font-weight: 700; }
 
   .btn-remove-guest { background: none; border: none; cursor: pointer; color: #d1d5db; font-size: 14px; padding: 2px 5px; border-radius: 4px; }
   .btn-remove-guest:hover { color: #dc2626; }
@@ -175,10 +182,11 @@ const PREDEFINED = [
 ];
 
 const STATUS_LABELS = {
-  eingeladen: "Eingeladen",
-  zugesagt:   "Zugesagt",
-  abgesagt:   "Abgesagt",
-  ersatz:     "Schickt Ersatz",
+  eingeladen:  "Eingeladen",
+  zugesagt:    "Zugesagt",
+  abgesagt:    "Abgesagt",
+  ersatz:      "Schickt Ersatz",
+  vertretung:  "In Vertretung von LHF",
 };
 
 let tokenClient, accessToken = null, fileId = null, saveTimer = null;
@@ -318,7 +326,7 @@ function renderEvents() {
 
   sorted.forEach(ev => {
     const guests = ev.guests || [];
-    const counts = { zugesagt:0, abgesagt:0, eingeladen:0, ersatz:0 };
+    const counts = { zugesagt:0, abgesagt:0, eingeladen:0, ersatz:0, vertretung:0 };
     guests.forEach(g => { if (counts[g.status] !== undefined) counts[g.status]++; });
     const isOpen = openEvents[ev.id];
 
@@ -332,6 +340,7 @@ function renderEvents() {
     if (counts.abgesagt)   html += '<span class="stat stat-a">✗ '+counts.abgesagt+'</span>';
     if (counts.eingeladen) html += '<span class="stat stat-e">✉ '+counts.eingeladen+'</span>';
     if (counts.ersatz)     html += '<span class="stat stat-r">⇄ '+counts.ersatz+'</span>';
+    if (counts.vertretung) html += '<span class="stat" style="background:#f3e8ff;color:#7c3aed;">V '+counts.vertretung+'</span>';
     html += '</div>';
     html += '<div class="event-actions">';
     html += '<button class="btn-icon" onclick="event.stopPropagation();deleteEvent(\''+ev.id+'\')" title="Löschen">🗑️</button>';
@@ -356,6 +365,10 @@ function renderEvents() {
     } else {
       html += '<div style="font-size:13px;color:#d1d5db;padding:8px 0;">Noch keine Gäste eingeladen.</div>';
     }
+
+    // Note field
+    html += '<span class="event-note-label">Notizen</span>';
+    html += '<textarea class="event-note" id="note-'+ev.id+'" oninput="autoGrow(this);saveNote(\''+ev.id+'\',this.value)" placeholder="Weitere Infos zum Event…">'+esc(ev.note||'')+'</textarea>';
 
     // Add guest row
     html += '<div class="add-guest-row">';
@@ -414,8 +427,17 @@ function renderPersons() {
     return;
   }
 
+  // Sort: persons with zugesagt first, then by name
+  const sorted = [...persons].sort((a, b) => {
+    const aHasYes = data.events.some(ev => (ev.guests||[]).find(g => g.name === a && g.status === 'zugesagt'));
+    const bHasYes = data.events.some(ev => (ev.guests||[]).find(g => g.name === b && g.status === 'zugesagt'));
+    if (aHasYes && !bHasYes) return -1;
+    if (!aHasYes && bHasYes) return 1;
+    return a.localeCompare(b, 'de');
+  });
+
   let html = '<div class="persons">';
-  persons.forEach(person => {
+  sorted.forEach(person => {
     const appearances = [];
     data.events.forEach(ev => {
       const g = (ev.guests||[]).find(g => g.name === person);
@@ -449,6 +471,13 @@ function renderPersons() {
 }
 
 // ── Event actions ─────────────────────────────────────────────
+function autoGrow(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
+
+function saveNote(eventId, value) {
+  const ev = data.events.find(e => e.id === eventId);
+  if (ev) { ev.note = value; scheduleSave(); }
+}
+
 function toggleEvent(id) {
   openEvents[id] = !openEvents[id];
   renderEvents();
