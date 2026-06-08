@@ -164,6 +164,9 @@
 const CLIENT_ID = "907159149164-mmpm2dntmhad9qg304dadmkgid5skacb.apps.googleusercontent.com";
 const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const FILE_NAME = "einladungen.json";
+const KV_READ  = "https://projektdashboard-theta.vercel.app/api/einladungen-read";
+const KV_WRITE = "https://projektdashboard-theta.vercel.app/api/einladungen-write";
+const WRITE_SECRET = "caritas-einladungen-2026";
 
 // Vordefinierte Personen
 const PREDEFINED = [
@@ -285,9 +288,16 @@ function scheduleSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try {
+      // Save to Google Drive
       if (!fileId) fileId = await createFile(data);
       else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+fileId+"?uploadType=media",
         { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      // Also save to Vercel KV for public access
+      await fetch(KV_WRITE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Write-Secret": WRITE_SECRET },
+        body: JSON.stringify(data)
+      });
       setSyncState("ok", "Gespeichert · "+new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" }));
     } catch(e) { setSyncState("err", "Speichern fehlgeschlagen"); }
   }, 1000);

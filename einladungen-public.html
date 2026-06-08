@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Einladungsübersicht – Caritas St. Pölten</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #f8f8f6; font-family: Helvetica, Arial, sans-serif; min-height: 100vh; color: #111; }
@@ -22,18 +21,18 @@
   .container { max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
 
   .badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
-  .badge-eingeladen { background: #e0f2fe; color: #0369a1; }
-  .badge-zugesagt   { background: #dcfce7; color: #16a34a; }
-  .badge-abgesagt   { background: #fee2e2; color: #dc2626; }
-  .badge-ersatz     { background: #fef3c7; color: #d97706; }
-  .badge-vertretung { background: #f3e8ff; color: #7c3aed; }
+  .badge-eingeladen  { background: #e0f2fe; color: #0369a1; }
+  .badge-zugesagt    { background: #dcfce7; color: #16a34a; }
+  .badge-abgesagt    { background: #fee2e2; color: #dc2626; }
+  .badge-ersatz      { background: #fef3c7; color: #d97706; }
+  .badge-vertretung  { background: #f3e8ff; color: #7c3aed; }
 
   .events { display: flex; flex-direction: column; gap: 12px; }
   .event-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; overflow: hidden; }
   .event-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .event-title { font-size: 15px; font-weight: 700; color: #111; }
   .event-date { font-size: 12px; color: #9ca3af; margin-top: 2px; }
-  .event-stats { display: flex; gap: 5px; }
+  .event-stats { display: flex; gap: 5px; flex-wrap: wrap; }
   .stat { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
   .stat-z { background: #dcfce7; color: #16a34a; }
   .stat-a { background: #fee2e2; color: #dc2626; }
@@ -41,10 +40,10 @@
   .stat-r { background: #fef3c7; color: #d97706; }
 
   .event-body { border-top: 1px solid #f3f4f6; padding: 12px 18px; }
-  .guest-list { display: flex; flex-direction: column; gap: 6px; }
+  .guest-list { display: flex; flex-direction: column; gap: 7px; }
   .guest-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
-  .guest-name { color: #374151; font-weight: 700; }
-  .event-note-display { font-size: 12px; color: #6b7280; font-style: italic; padding: 6px 0 2px; border-top: 1px solid #f3f4f6; margin-top: 6px; }
+  .guest-name { color: #111; font-weight: 700; }
+  .event-note-display { font-size: 12px; color: #6b7280; font-style: italic; padding: 8px 0 2px; border-top: 1px solid #f3f4f6; margin-top: 8px; }
 
   .persons { display: flex; flex-wrap: wrap; gap: 10px; }
   .person-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; flex: 1 1 240px; min-width: 200px; max-width: 320px; }
@@ -54,104 +53,87 @@
   .person-empty { font-size: 12px; color: #d1d5db; }
 
   .empty { color: #d1d5db; font-size: 13px; padding: 40px 0; text-align: center; }
+  .loading { color: #9ca3af; font-size: 13px; padding: 40px 0; text-align: center; }
   .updated { font-size: 11px; color: #d1d5db; text-align: center; margin-top: 20px; }
 
-  .login-screen { text-align: center; padding: 80px 20px; }
-  .login-screen h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-  .login-screen p { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
-  .btn-login-big { padding: 12px 28px; border-radius: 10px; border: 1.5px solid #e5e7eb; background: #fff; color: #111; cursor: pointer; font-size: 15px; font-weight: 600; font-family: inherit; }
-
   @media (max-width: 600px) { .person-card { flex: 1 1 100%; max-width: 100%; } }
+
+  /* PIN screen */
+  .pin-screen { position: fixed; inset: 0; background: #f8f8f6; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .pin-box { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; padding: 32px 28px; max-width: 340px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .pin-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .pin-box p { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+  .pin-input { width: 100%; font-size: 15px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; font-family: inherit; outline: none; text-align: center; letter-spacing: 2px; margin-bottom: 10px; }
+  .pin-input:focus { border-color: #9ca3af; }
+  .pin-btn { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; font-family: inherit; }
+  .pin-error { font-size: 12px; color: #dc2626; margin-top: 8px; min-height: 18px; }
 </style>
 </head>
 <body>
 
-<div id="login-screen" class="login-screen" style="display:none">
-  <h2>Einladungsübersicht</h2>
-  <p>Bitte melde dich an um die Übersicht zu sehen.</p>
-  <button class="btn-login-big" onclick="signIn()">🔐 Mit Google anmelden</button>
+
+<div class="pin-screen" id="pin-screen">
+  <div class="pin-box">
+    <div style="font-size:28px;margin-bottom:12px;">🔐</div>
+    <h2>Einladungsübersicht</h2>
+    <p>Caritas St. Pölten · Interner Bereich</p>
+    <input class="pin-input" type="password" id="pin-input" placeholder="Zugangscode eingeben" onkeydown="if(event.key==='Enter')checkPin()" autocomplete="off" />
+    <button class="pin-btn" onclick="checkPin()">Zugang</button>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
 </div>
 
-<div id="app" style="display:none">
-  <div class="header">
-    <div class="header-inner">
-      <div>
-        <div class="header-label">Caritas St. Pölten · Nur lesen</div>
-        <h1>Einladungsübersicht</h1>
-      </div>
-      <div class="header-meta" id="header-meta"></div>
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="header-label">Caritas St. Pölten · Nur lesen</div>
+      <h1>Einladungsübersicht</h1>
     </div>
+    <div class="header-meta" id="header-meta"></div>
   </div>
-  <div class="container">
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('events')" id="tab-events">Nach Events</button>
-      <button class="tab" onclick="switchTab('persons')" id="tab-persons">Nach Personen</button>
-    </div>
-    <div id="view-events"></div>
-    <div id="view-persons" style="display:none"></div>
-    <div class="updated" id="updated"></div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('events')" id="tab-events">Nach Events</button>
+    <button class="tab" onclick="switchTab('persons')" id="tab-persons">Nach Personen</button>
   </div>
+  <div id="view-events"><div class="loading">Wird geladen…</div></div>
+  <div id="view-persons" style="display:none"></div>
+  <div class="updated" id="updated"></div>
 </div>
 
 <script>
-const CLIENT_ID = "907159149164-mmpm2dntmhad9qg304dadmkgid5skacb.apps.googleusercontent.com";
-const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
-const FILE_NAME = "einladungen.json";
+const API_READ = "https://projektdashboard-theta.vercel.app/api/einladungen-read";
+const STATUS_LABELS = {
+  eingeladen: "Eingeladen",
+  zugesagt:   "Zugesagt",
+  abgesagt:   "Abgesagt",
+  ersatz:     "Schickt Ersatz",
+  vertretung: "In Vertretung von LHF",
+};
 
-const STATUS_LABELS = { eingeladen:"Eingeladen", zugesagt:"Zugesagt", abgesagt:"Abgesagt", ersatz:"Schickt Ersatz", vertretung:"In Vertretung von LHF" };
-
-let tokenClient, accessToken = null;
 let data = { events: [], customPersons: [] };
-
-window.addEventListener("load", () => {
-  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: () => {} });
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID, scope: SCOPE,
-    callback: async (resp) => {
-      if (resp.error) return;
-      accessToken = resp.access_token;
-      localStorage.setItem("einladungen_pub_signed_in", "1");
-      showApp();
-      await loadData();
-    }
-  });
-  if (localStorage.getItem("einladungen_pub_signed_in") === "1") {
-    showApp();
-    tokenClient.requestAccessToken({ prompt: "" });
-  } else {
-    document.getElementById("login-screen").style.display = "";
-  }
-});
-
-function signIn() { tokenClient.requestAccessToken({ prompt: "consent" }); }
-function showApp() {
-  document.getElementById("login-screen").style.display = "none";
-  document.getElementById("app").style.display = "";
-}
-
-async function loadData() {
-  try {
-    const res = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27"+FILE_NAME+"%27&fields=files(id)",
-      { headers: { Authorization: "Bearer "+accessToken } });
-    const d = await res.json();
-    if (d.files && d.files.length) {
-      const r = await fetch("https://www.googleapis.com/drive/v3/files/"+d.files[0].id+"?alt=media",
-        { headers: { Authorization: "Bearer "+accessToken } });
-      data = await r.json();
-      if (!data.events) data.events = [];
-      if (!data.customPersons) data.customPersons = [];
-    }
-  } catch(e) {}
-  render();
-  document.getElementById("updated").textContent = "Stand: " + new Date().toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" }) + ", " + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
-  document.getElementById("header-meta").textContent = data.events.length + " Events";
-}
 
 function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function fmtDate(d) {
   if (!d) return "";
   const dt = new Date(d); dt.setHours(12);
   return dt.toLocaleDateString("de-AT", { weekday:"short", day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
+async function load() {
+  try {
+    const res = await fetch(API_READ);
+    data = await res.json();
+    if (!data.events) data.events = [];
+    if (!data.customPersons) data.customPersons = [];
+  } catch(e) {}
+  render();
+  document.getElementById("header-meta").textContent = data.events.length + " Events";
+  document.getElementById("updated").textContent = "Stand: " +
+    new Date().toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" }) + ", " +
+    new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" });
 }
 
 function switchTab(tab) {
@@ -161,38 +143,40 @@ function switchTab(tab) {
   document.getElementById("view-persons").style.display = tab === "persons" ? "" : "none";
 }
 
-function render() {
-  renderEvents();
-  renderPersons();
-}
+function render() { renderEvents(); renderPersons(); }
 
 function renderEvents() {
   const el = document.getElementById("view-events");
   if (!data.events.length) { el.innerHTML = '<div class="empty">Noch keine Events angelegt.</div>'; return; }
-  const sorted = [...data.events].sort((a,b) => { if(a.date&&b.date) return new Date(a.date)-new Date(b.date); if(a.date) return -1; if(b.date) return 1; return 0; });
+  const sorted = [...data.events].sort((a,b) => {
+    if (a.date && b.date) return new Date(a.date) - new Date(b.date);
+    if (a.date) return -1; if (b.date) return 1; return 0;
+  });
   let html = '<div class="events">';
   sorted.forEach(ev => {
     const guests = ev.guests || [];
     const counts = { zugesagt:0, abgesagt:0, eingeladen:0, ersatz:0, vertretung:0 };
-    guests.forEach(g => { if(counts[g.status]!==undefined) counts[g.status]++; });
+    guests.forEach(g => { if (counts[g.status] !== undefined) counts[g.status]++; });
     html += '<div class="event-card"><div class="event-header">';
     html += '<div><div class="event-title">'+esc(ev.title)+'</div><div class="event-date">'+fmtDate(ev.date)+'</div></div>';
     html += '<div class="event-stats">';
-    if(counts.zugesagt)   html += '<span class="stat stat-z">✓ '+counts.zugesagt+'</span>';
-    if(counts.abgesagt)   html += '<span class="stat stat-a">✗ '+counts.abgesagt+'</span>';
-    if(counts.eingeladen) html += '<span class="stat stat-e">✉ '+counts.eingeladen+'</span>';
-    if(counts.ersatz)     html += '<span class="stat stat-r">⇄ '+counts.ersatz+'</span>';
-    if(counts.vertretung) html += '<span class="stat" style="background:#f3e8ff;color:#7c3aed;">V '+counts.vertretung+'</span>';
+    if (counts.zugesagt)   html += '<span class="stat stat-z">✓ '+counts.zugesagt+'</span>';
+    if (counts.abgesagt)   html += '<span class="stat stat-a">✗ '+counts.abgesagt+'</span>';
+    if (counts.eingeladen) html += '<span class="stat stat-e">✉ '+counts.eingeladen+'</span>';
+    if (counts.ersatz)     html += '<span class="stat stat-r">⇄ '+counts.ersatz+'</span>';
+    if (counts.vertretung) html += '<span class="stat" style="background:#f3e8ff;color:#7c3aed;">V '+counts.vertretung+'</span>';
     html += '</div></div>';
-    const noteHtml = ev.note ? '<div class="event-note-display">📝 '+esc(ev.note)+'</div>' : '';
     if (guests.length > 0) {
       html += '<div class="event-body"><div class="guest-list">';
       guests.forEach(g => {
-        html += '<div class="guest-row"><span class="guest-name">'+esc(g.name)+'</span><span class="badge badge-'+g.status+'">'+STATUS_LABELS[g.status]+'</span></div>';
+        html += '<div class="guest-row"><span class="guest-name">'+esc(g.name)+'</span>';
+        html += '<span class="badge badge-'+g.status+'">'+(STATUS_LABELS[g.status]||g.status)+'</span></div>';
       });
-      html += '</div>'+noteHtml+'</div>';
+      html += '</div>';
+      if (ev.note) html += '<div class="event-note-display">📝 '+esc(ev.note)+'</div>';
+      html += '</div>';
     } else if (ev.note) {
-      html += '<div class="event-body">'+noteHtml+'</div>';
+      html += '<div class="event-body"><div class="event-note-display">📝 '+esc(ev.note)+'</div></div>';
     }
     html += '</div>';
   });
@@ -202,24 +186,32 @@ function renderEvents() {
 
 function renderPersons() {
   const el = document.getElementById("view-persons");
-  const allPersons = [...new Set([...data.events.flatMap(ev => (ev.guests||[]).map(g => g.name)), ...(data.customPersons||[])])].sort();
+  const allPersons = [...new Set([
+    ...data.events.flatMap(ev => (ev.guests||[]).map(g => g.name)),
+    ...(data.customPersons||[])
+  ])];
   if (!allPersons.length) { el.innerHTML = '<div class="empty">Keine Personen vorhanden.</div>'; return; }
-  const sortedPersons = [...allPersons].sort((a,b) => {
+  const sorted = [...allPersons].sort((a,b) => {
     const aYes = data.events.some(ev => (ev.guests||[]).find(g => g.name===a && g.status==='zugesagt'));
     const bYes = data.events.some(ev => (ev.guests||[]).find(g => g.name===b && g.status==='zugesagt'));
-    if (aYes && !bYes) return -1; if (!aYes && bYes) return 1; return a.localeCompare(b,'de');
+    if (aYes && !bYes) return -1; if (!aYes && bYes) return 1;
+    return a.localeCompare(b, 'de');
   });
   let html = '<div class="persons">';
-  sortedPersons.forEach(person => {
-    const appearances = data.events.filter(ev => (ev.guests||[]).find(g => g.name === person))
+  sorted.forEach(person => {
+    const appearances = data.events
+      .filter(ev => (ev.guests||[]).find(g => g.name === person))
       .map(ev => ({ title: ev.title, date: ev.date, status: ev.guests.find(g => g.name === person).status }))
       .sort((a,b) => { if(a.date&&b.date) return new Date(a.date)-new Date(b.date); return 0; });
     html += '<div class="person-card"><div class="person-name">'+esc(person)+'</div>';
-    if (!appearances.length) { html += '<div class="person-empty">Noch nicht eingeladen.</div>'; }
-    else {
+    if (!appearances.length) {
+      html += '<div class="person-empty">Noch nicht eingeladen.</div>';
+    } else {
       appearances.forEach(a => {
         html += '<div class="person-event-row"><span class="person-event-name">'+esc(a.title)+'</span>';
-        html += '<span style="display:flex;align-items:center;gap:5px;"><span style="font-size:11px;color:#9ca3af;">'+fmtDate(a.date)+'</span><span class="badge badge-'+a.status+'">'+STATUS_LABELS[a.status]+'</span></span></div>';
+        html += '<span style="display:flex;align-items:center;gap:5px;">';
+        if (a.date) html += '<span style="font-size:11px;color:#9ca3af;">'+fmtDate(a.date)+'</span>';
+        html += '<span class="badge badge-'+a.status+'">'+(STATUS_LABELS[a.status]||a.status)+'</span></span></div>';
       });
     }
     html += '</div>';
@@ -227,6 +219,34 @@ function renderPersons() {
   html += '</div>';
   el.innerHTML = html;
 }
+
+
+// ── PIN Protection ────────────────────────────────────────────
+const CORRECT_PIN = "EinladungEvent26!";
+const PIN_KEY = "einladungen_pub_pin";
+
+function checkPin() {
+  const input = document.getElementById("pin-input").value;
+  if (input === CORRECT_PIN) {
+    localStorage.setItem(PIN_KEY, "1");
+    document.getElementById("pin-screen").style.display = "none";
+    load();
+  } else {
+    document.getElementById("pin-error").textContent = "Falscher Zugangscode.";
+    document.getElementById("pin-input").value = "";
+    document.getElementById("pin-input").focus();
+  }
+}
+
+window.addEventListener("load", () => {
+  if (localStorage.getItem(PIN_KEY) === "1") {
+    document.getElementById("pin-screen").style.display = "none";
+    load();
+  } else {
+    setTimeout(() => document.getElementById("pin-input").focus(), 100);
+  }
+});
+
 </script>
 </body>
 </html>
