@@ -1,38 +1,35 @@
-const KV_URL = "https://boss-sponge-145154.upstash.io";
-const KV_TOKEN = "gQAAAAAAjcCAAIgcDJhMjA0Nzk5MzdjYTI0OGI1OTgwMWU5YmEzM2QxMjc3NQ";
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
+  const KV_URL = process.env.KV_REST_API_URL;
+  const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+
+  if (!KV_URL || !KV_TOKEN) {
+    return res.status(500).json({ error: "KV not configured", url: !!KV_URL, token: !!KV_TOKEN });
+  }
+
   try {
-    // Step 1: Write a simple test value
     const writeRes = await fetch(KV_URL + "/pipeline", {
       method: "POST",
-      headers: {
-        Authorization: "Bearer " + KV_TOKEN,
-        "Content-Type": "application/json"
-      },
+      headers: { Authorization: "Bearer " + KV_TOKEN, "Content-Type": "application/json" },
       body: JSON.stringify([["SET", "test-key", "hello-world"]])
     });
     const writeData = await writeRes.json();
 
-    // Step 2: Read it back
     const readRes = await fetch(KV_URL + "/pipeline", {
       method: "POST",
-      headers: {
-        Authorization: "Bearer " + KV_TOKEN,
-        "Content-Type": "application/json"
-      },
+      headers: { Authorization: "Bearer " + KV_TOKEN, "Content-Type": "application/json" },
       body: JSON.stringify([["GET", "test-key"], ["GET", "einladungen"]])
     });
     const readData = await readRes.json();
 
     return res.status(200).json({
+      kvConfigured: true,
       writeResult: writeData,
-      readResult: readData,
-      einladungenValue: readData[1]?.result ? readData[1].result.substring(0, 200) : null
+      testKeyValue: readData[0]?.result,
+      einladungenPreview: readData[1]?.result ? String(readData[1].result).substring(0, 100) : null
     });
   } catch(e) {
-    return res.status(500).json({ error: e.message, stack: e.stack });
+    return res.status(500).json({ error: e.message });
   }
 }
