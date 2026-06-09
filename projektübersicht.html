@@ -737,14 +737,31 @@ async function loadEhrenGaeste(manual=false) {
       const e = guests.filter(g => g.status==="eingeladen").length;
       const dt = ev.date ? new Date(ev.date) : null;
       const dateStr = dt ? dt.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}) : "";
-      return "<div style=\"background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 13px;min-width:160px;flex:1 1 160px;max-width:240px;\">" +
-        "<div style=\"font-size:13px;font-weight:700;color:#111;margin-bottom:3px;\">" + esc(ev.title) + "</div>" +
+      const statusColors = {
+        zugesagt:   { bg:"#dcfce7", color:"#15803d" },
+        vertretung: { bg:"#dcfce7", color:"#15803d" },
+        abgesagt:   { bg:"#fee2e2", color:"#dc2626" },
+        eingeladen: { bg:"#dbeafe", color:"#1d4ed8" },
+        ersatz:     { bg:"#fef3c7", color:"#b45309" },
+      };
+      const guestListHtml = guests.length
+        ? "<div style=\"margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6;display:flex;flex-direction:column;gap:4px;\">" +
+          guests.map(g => {
+            const sc = statusColors[g.status] || { bg:"#f3f4f6", color:"#6b7280" };
+            return "<div style=\"display:flex;align-items:center;justify-content:space-between;gap:6px;\">" +
+              "<span style=\"font-size:12px;color:#111;font-weight:600;\">" + esc(g.name) + "</span>" +
+              "<span style=\"font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;white-space:nowrap;background:"+sc.bg+";color:"+sc.color+";\">"+esc(g.status==="vertretung"?"Vertretung":g.status==="eingeladen"?"Eingeladen":g.status==="zugesagt"?"Zugesagt":g.status==="abgesagt"?"Abgesagt":"Ersatz")+"</span>" +
+              "</div>";
+          }).join("") + "</div>"
+        : "";
+      return "<div style=\"background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 13px;min-width:200px;flex:1 1 200px;max-width:300px;\">" +
+        "<div style=\"font-size:13px;font-weight:700;color:#111;margin-bottom:2px;\">" + esc(ev.title) + "</div>" +
         "<div style=\"font-size:11px;color:#9ca3af;margin-bottom:6px;\">" + dateStr + "</div>" +
         "<div style=\"display:flex;gap:4px;flex-wrap:wrap;\">" +
         (z ? "<span style=\"font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#dcfce7;color:#15803d;\">✓ "+z+"</span>" : "") +
         (a ? "<span style=\"font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#fee2e2;color:#dc2626;\">✗ "+a+"</span>" : "") +
         (e ? "<span style=\"font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#dbeafe;color:#1d4ed8;\">✉ "+e+"</span>" : "") +
-        "</div></div>";
+        "</div>" + guestListHtml + "</div>";
     }).join("") + "</div>";
   } catch(e) {
     statusEl.textContent = "Fehler";
