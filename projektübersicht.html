@@ -279,7 +279,22 @@
 
     <hr class="section-divider">
 
-    <!-- ÖA Termine -->
+    <!-- Ehrengäste-Management -->
+    <div class="asana-section">
+      <div class="asana-section-header">
+        <div class="asana-section-left">
+          <div class="asana-section-title">Ehrengäste-Management</div>
+          <button class="btn-refresh" id="refresh-ehren" onclick="loadEhrenGaeste(true)">↻</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="asana-status" id="ehren-status">Lädt…</div>
+          <a href="https://riedlchr.github.io/projektdashboard/einladungen.html" target="_blank" style="font-size:11px;font-weight:600;color:#9ca3af;text-decoration:none;border:1.5px solid #e5e7eb;padding:3px 8px;border-radius:6px;background:#fff;">✏️ Bearbeiten</a>
+        </div>
+      </div>
+      <div id="ehren-events"></div>
+    </div>
+
+    <hr class="section-divider">
     <div class="asana-section">
       <div class="asana-section-header">
         <div class="asana-section-left">
@@ -423,6 +438,7 @@ function showApp() {
   document.getElementById("app").style.display = "";
   loadAsanaTasks();
   loadTermine();
+  loadEhrenGaeste();
   loadTodosFromDrive();
 }
 
@@ -694,6 +710,48 @@ async function completeAsanaTask(gid, cbEl) {
 }
 
 // ── ÖA Termine ────────────────────────────────────────────────
+
+// ── Ehrengäste-Management ────────────────────────────────────
+async function loadEhrenGaeste(manual=false) {
+  const statusEl = document.getElementById("ehren-status");
+  const eventsEl = document.getElementById("ehren-events");
+  const btn      = document.getElementById("refresh-ehren");
+  if (!statusEl || !eventsEl) return;
+  if (manual && btn) btn.classList.add("spinning");
+  statusEl.textContent = "Lädt…";
+  try {
+    const res = await fetch("https://projektdashboard-theta.vercel.app/api/einladungen-read");
+    const data = await res.json();
+    const events = (data.events || []).sort((a,b) => {
+      if(a.date&&b.date) return new Date(a.date)-new Date(b.date);
+      if(a.date) return -1; if(b.date) return 1; return 0;
+    });
+    const today = new Date(); today.setHours(0,0,0,0);
+    const current = events.filter(e => { if(!e.date) return true; const d=new Date(e.date); d.setHours(0,0,0,0); return d>=today; });
+    statusEl.textContent = current.length + " Events";
+    if (!current.length) { eventsEl.innerHTML = "<div class=\"asana-empty\">Keine aktuellen Events.</div>"; return; }
+    eventsEl.innerHTML = "<div style=\"display:flex;flex-wrap:wrap;gap:8px;\">" + current.map(ev => {
+      const guests = ev.guests || [];
+      const z = guests.filter(g => g.status==="zugesagt"||g.status==="vertretung").length;
+      const a = guests.filter(g => g.status==="abgesagt").length;
+      const e = guests.filter(g => g.status==="eingeladen").length;
+      const dt = ev.date ? new Date(ev.date) : null;
+      const dateStr = dt ? dt.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}) : "";
+      return "<div style=\"background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 13px;min-width:160px;flex:1 1 160px;max-width:240px;\">" +
+        "<div style=\"font-size:13px;font-weight:700;color:#111;margin-bottom:3px;\">" + esc(ev.title) + "</div>" +
+        "<div style=\"font-size:11px;color:#9ca3af;margin-bottom:6px;\">" + dateStr + "</div>" +
+        "<div style=\"display:flex;gap:4px;flex-wrap:wrap;\">" +
+        (z ? "<span style=\"font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#dcfce7;color:#15803d;\">✓ "+z+"</span>" : "") +
+        (a ? "<span style=\"font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#fee2e2;color:#dc2626;\">✗ "+a+"</span>" : "") +
+        (e ? "<span style=\"font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#dbeafe;color:#1d4ed8;\">✉ "+e+"</span>" : "") +
+        "</div></div>";
+    }).join("") + "</div>";
+  } catch(e) {
+    statusEl.textContent = "Fehler";
+    eventsEl.innerHTML = "<div class=\"asana-empty\">Konnte nicht geladen werden.</div>";
+  }
+  if (manual&&btn) setTimeout(()=>btn.classList.remove("spinning"),600);
+}
 async function loadTermine(manual=false) {
   const statusEl=document.getElementById("termine-status");
   const listEl  =document.getElementById("termine-list");
