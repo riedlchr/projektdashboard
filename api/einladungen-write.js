@@ -3,7 +3,7 @@ const KV_TOKEN = "gQAAAAAAjcCAAIgcDJhMjA0Nzk5MzdjYTI0OGI1OTgwMWU5YmEzM2QxMjc3NQ"
 const WRITE_SECRET = "caritas-einladungen-2026";
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "https://riedlchr.github.io");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Write-Secret");
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -14,10 +14,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get body as string
     const bodyStr = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
 
-    // Upstash REST API: SET key value
     const r = await fetch(KV_URL + "/set/einladungen", {
       method: "POST",
       headers: {
@@ -26,6 +24,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify(bodyStr)
     });
+
     const result = await r.json();
     return res.status(200).json({ ok: true, result });
   } catch(e) {
