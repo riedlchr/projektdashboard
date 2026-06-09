@@ -8,20 +8,30 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    const r = await fetch(KV_URL + "/get/einladungen", {
-      headers: { Authorization: "Bearer " + KV_TOKEN }
+    // Use pipeline format for reading too
+    const r = await fetch(KV_URL + "/pipeline", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + KV_TOKEN,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify([["GET", "einladungen"]])
     });
-    const data = await r.json();
-    if (!data.result) return res.status(200).json({ events: [], customPersons: [] });
 
-    let parsed = data.result;
-    // Unwrap double-encoded JSON if needed
+    const results = await r.json();
+    const value = results[0]?.result;
+
+    if (!value) return res.status(200).json({ events: [], customPersons: [] });
+
+    // Parse once or twice if double-encoded
+    let parsed = value;
     if (typeof parsed === "string") {
       try { parsed = JSON.parse(parsed); } catch(e) {}
     }
     if (typeof parsed === "string") {
       try { parsed = JSON.parse(parsed); } catch(e) {}
     }
+
     return res.status(200).json(parsed);
   } catch(e) {
     return res.status(500).json({ error: e.message });

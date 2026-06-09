@@ -16,13 +16,14 @@ export default async function handler(req, res) {
   try {
     const bodyStr = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
 
-    const r = await fetch(KV_URL + "/set/einladungen", {
+    // Use Upstash pipeline format: [["SET", key, value]]
+    const r = await fetch(KV_URL + "/pipeline", {
       method: "POST",
       headers: {
         Authorization: "Bearer " + KV_TOKEN,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(bodyStr)
+      body: JSON.stringify([["SET", "einladungen", bodyStr]])
     });
 
     const result = await r.json();
