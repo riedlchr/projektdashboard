@@ -31,6 +31,9 @@
   .item-date-day   { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
   .item-date-num   { font-size: 20px; font-weight: 700; color: #111; line-height: 1.1; }
   .item-date-month { font-size: 10px; color: #6b7280; }
+  .item-date-time  { font-size: 10px; font-weight: 700; color: #6b7280; margin-top: 3px; padding-top: 3px; border-top: 1px solid #e5e7eb; }
+  .item.overdue .item-date-time { color: #dc2626; border-top-color: #fca5a5; }
+  .item.soon    .item-date-time { color: #d97706; border-top-color: #fde68a; }
   .item.overdue .item-date-day,
   .item.overdue .item-date-num,
   .item.overdue .item-date-month { color: #dc2626; }
@@ -133,10 +136,12 @@ function renderItem(t) {
 
   var dateHtml;
   if (dt) {
+    var timeStr = formatTime(t.due_at);
     dateHtml = '<div class="item-date">'
       + '<div class="item-date-day">' + esc(dt.day) + '</div>'
       + '<div class="item-date-num">' + dt.num + '</div>'
       + '<div class="item-date-month">' + esc(dt.month) + ' ' + dt.year + '</div>'
+      + (timeStr ? '<div class="item-date-time">' + timeStr + ' Uhr</div>' : '')
       + '</div>';
   } else {
     dateHtml = '<div class="item-date"><div class="item-date-num">–</div></div>';
@@ -164,10 +169,6 @@ function renderItem(t) {
 
   var fieldsHtml = fieldRows.length > 0 ? '<div class="item-fields">' + fieldRows.join("") + '</div>' : "";
   var weekdayHtml = "";
-  if (dt) {
-    var timeStr = formatTime(t.due_at);
-    weekdayHtml = '<div class="item-weekday">' + esc(dt.weekday) + (timeStr ? ' · ' + timeStr + ' Uhr' : '') + '</div>';
-  }
 
   return '<div class="item ' + cls + '">'
     + dateHtml
