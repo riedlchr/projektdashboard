@@ -185,8 +185,11 @@
   .todo-add-btn { padding: 7px 14px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 13px; font-family: inherit; font-weight: 600; flex-shrink: 0; }
   .todo-add-btn:hover { background: #374151; }
   .todo-items { display: flex; flex-wrap: wrap; gap: 8px; }
-  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 13px; flex: 1 1 200px; min-width: 160px; max-width: 280px; display: flex; align-items: flex-start; gap: 8px; transition: box-shadow 0.15s; }
+  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 13px; flex: 1 1 200px; min-width: 160px; max-width: 280px; display: flex; align-items: flex-start; gap: 8px; transition: box-shadow 0.15s, border-color 0.15s; cursor: pointer; border-left: 4px solid #d1d5db; }
   .todo-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .todo-item.prio-red    { border-left-color: #dc2626; }
+  .todo-item.prio-orange { border-left-color: #d97706; }
+  .todo-item.prio-blue   { border-left-color: #2563eb; }
   .todo-cb { width: 14px; height: 14px; border: 1.5px solid #d1d5db; border-radius: 50%; flex-shrink: 0; margin-top: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: #fff; }
   .todo-cb:hover { border-color: #16a34a; }
   .todo-cb.completing { border-color: #16a34a; background: #16a34a; }
@@ -824,6 +827,8 @@ async function loadTodosFromDrive() {
       todos = [];
       todoFileId = await createTodoFile([]);
     }
+    // Migrate old string-only todos to objects
+    todos = todos.map(t => typeof t === "string" ? { text: t, priority: "blue" } : t);
   } catch(e) {
     todos = [];
   }
@@ -852,20 +857,44 @@ function scheduleTodoSave() {
   }, 1000);
 }
 
+const PRIORITY_ORDER = { red: 0, orange: 1, blue: 2 };
+const PRIORITY_CYCLE = { blue: "orange", orange: "red", red: "blue" };
+
+function sortedTodoIndices() {
+  return todos
+    .map((t, i) => i)
+    .sort((a, b) => (PRIORITY_ORDER[todos[a].priority] ?? 2) - (PRIORITY_ORDER[todos[b].priority] ?? 2));
+}
+
 function renderTodos() {
   const el = document.getElementById("todo-items");
   const countEl = document.getElementById("todo-count");
   if (!el) return;
   if (countEl) countEl.textContent = todos.length ? todos.length + " offen" : "";
   if (todos.length === 0) { el.innerHTML = `<div class="todo-empty">Noch keine Einträge.</div>`; return; }
-  el.innerHTML = todos.map((t,i) => `<div class="todo-item"><div class="todo-cb" onclick="checkTodo(${i},this)"><span class="todo-cb-check">✓</span></div><div class="todo-label">${esc(t)}</div></div>`).join("");
+  const order = sortedTodoIndices();
+  el.innerHTML = order.map(i => {
+    const t = todos[i];
+    return `<div class="todo-item prio-${t.priority||'blue'}" onclick="cycleTodoPriority(${i})">
+      <div class="todo-cb" onclick="event.stopPropagation();checkTodo(${i},this)"><span class="todo-cb-check">✓</span></div>
+      <div class="todo-label">${esc(t.text)}</div>
+    </div>`;
+  }).join("");
+}
+
+function cycleTodoPriority(index) {
+  const t = todos[index];
+  if (!t) return;
+  t.priority = PRIORITY_CYCLE[t.priority || "blue"];
+  renderTodos();
+  scheduleTodoSave();
 }
 
 function addTodo() {
   const input = document.getElementById("todo-input");
   const val = input.value.trim();
   if (!val) return;
-  todos.unshift(val);
+  todos.unshift({ text: val, priority: "blue" });
   input.value = "";
   renderTodos();
   scheduleTodoSave();
