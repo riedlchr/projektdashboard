@@ -113,6 +113,12 @@ function parsedDate(dateStr) {
   };
 }
 
+function formatTime(dueAt) {
+  if (!dueAt) return null;
+  var d = new Date(dueAt);
+  return d.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" });
+}
+
 function sortTasks(a, b) {
   if (a.due_on && b.due_on) return new Date(a.due_on) - new Date(b.due_on);
   if (a.due_on) return -1;
@@ -157,7 +163,11 @@ function renderItem(t) {
   });
 
   var fieldsHtml = fieldRows.length > 0 ? '<div class="item-fields">' + fieldRows.join("") + '</div>' : "";
-  var weekdayHtml = dt ? '<div class="item-weekday">' + esc(dt.weekday) + '</div>' : "";
+  var weekdayHtml = "";
+  if (dt) {
+    var timeStr = formatTime(t.due_at);
+    weekdayHtml = '<div class="item-weekday">' + esc(dt.weekday) + (timeStr ? ' · ' + timeStr + ' Uhr' : '') + '</div>';
+  }
 
   return '<div class="item ' + cls + '">'
     + dateHtml
