@@ -198,6 +198,33 @@
   .todo-label { font-size: 13px; color: #374151; line-height: 1.4; flex: 1; }
   .todo-label.done { text-decoration: line-through; color: #9ca3af; }
   .todo-empty { font-size: 13px; color: #d1d5db; padding: 8px 0; }
+
+  /* Besprechungsthemen */
+  .meeting-boards { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .meeting-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; flex: 1 1 240px; min-width: 200px; max-width: 320px; }
+  .meeting-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .meeting-card-name { font-size: 14px; font-weight: 700; color: #111; }
+  .meeting-card-actions button { background: none; border: none; cursor: pointer; font-size: 13px; padding: 3px 5px; border-radius: 6px; opacity: 0.4; }
+  .meeting-card-actions button:hover { opacity: 1; }
+  .meeting-topics { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+  .meeting-topic { font-size: 13px; color: #374151; line-height: 1.4; display: flex; gap: 7px; align-items: flex-start; cursor: pointer; border-radius: 6px; padding: 3px 4px; transition: background 0.1s; }
+  .meeting-topic:hover { background: rgba(0,0,0,0.04); }
+  .meeting-topic:hover .mt-box { border-color: #6b7280; }
+  .mt-box { width: 13px; height: 13px; border: 1.5px solid #d1d5db; border-radius: 3px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: #fff; }
+  .mt-box.checking { border-color: #16a34a; background: #16a34a; }
+  .mt-check { display: none; color: #fff; font-size: 9px; font-weight: 700; }
+  .mt-box.checking .mt-check { display: block; }
+  .mt-label { flex: 1; }
+  .mt-label.checking { text-decoration: line-through; color: #9ca3af; }
+  .meeting-topic-empty { font-size: 12px; color: #d1d5db; padding: 4px 0; }
+  .meeting-add-topic { display: flex; gap: 6px; padding-top: 8px; border-top: 1px solid #f3f4f6; }
+  .meeting-add-topic input { flex: 1; font-size: 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 6px 9px; font-family: inherit; outline: none; background: #fafafa; }
+  .meeting-add-topic input:focus { border-color: #9ca3af; }
+  .meeting-add-topic button { background: none; border: none; cursor: pointer; color: #9ca3af; font-size: 13px; padding: 0 4px; }
+  .meeting-add-topic button:hover { color: #111; }
+  .meeting-add-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 16px 18px; margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+  .meeting-add-card input { flex: 1; font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 7px 10px; font-family: inherit; outline: none; }
+  .meeting-add-card input:focus { border-color: #9ca3af; }
   /* Login */
   .login-screen { max-width: 680px; margin: 80px auto; padding: 0 20px; text-align: center; }
   .login-screen h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 10px; }
@@ -273,6 +300,21 @@
       </div>
       <div class="todo-items" id="todo-items"></div>
     </div>
+    <hr class="section-divider">
+
+    <!-- Besprechungsthemen -->
+    <div class="asana-section">
+      <div class="asana-section-header">
+        <div class="asana-section-left">
+          <div class="asana-section-title">Themen für Besprechungen</div>
+        </div>
+        <div class="asana-status" id="meeting-status"></div>
+      </div>
+      <div class="meeting-boards" id="meeting-boards"></div>
+      <button class="add-btn" onclick="startAddMeeting()">+ Person / Gremium hinzufügen</button>
+      <div id="meeting-add-area"></div>
+    </div>
+
     <hr class="section-divider">
     <!-- Filters + Projects -->
     <div class="filters" id="filters"></div>
@@ -443,6 +485,7 @@ function showApp() {
   loadTermine();
   loadEhrenGaeste();
   loadTodosFromDrive();
+  loadMeetingsFromDrive();
 }
 
 // ── Sync ──────────────────────────────────────────────────────
@@ -909,6 +952,142 @@ function checkTodo(index, cbEl) {
   if (labelEl) labelEl.classList.add("done");
   cbEl.style.pointerEvents = "none";
   setTimeout(() => { todos.splice(index, 1); renderTodos(); scheduleTodoSave(); }, 500);
+}
+
+// ── Besprechungsthemen (Google Drive) ──────────────────────────
+const MEETING_FILE = "besprechungen.json";
+let meetings = [];
+let meetingFileId = null;
+let meetingSaveTimer = null;
+let addingMeeting = false;
+
+async function loadMeetingsFromDrive() {
+  try {
+    const res = await driveRequest("GET",
+      "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27"+MEETING_FILE+"%27&fields=files(id)");
+    const data = await res.json();
+    if (data.files && data.files.length) {
+      meetingFileId = data.files[0].id;
+      const r = await driveRequest("GET", "https://www.googleapis.com/drive/v3/files/"+meetingFileId+"?alt=media");
+      meetings = await r.json();
+    } else {
+      meetings = [];
+      meetingFileId = await createMeetingFile([]);
+    }
+  } catch(e) {
+    meetings = [];
+  }
+  renderMeetings();
+}
+
+async function createMeetingFile(content) {
+  const meta = { name: MEETING_FILE, parents: ["appDataFolder"] };
+  const form = new FormData();
+  form.append("metadata", new Blob([JSON.stringify(meta)], { type: "application/json" }));
+  form.append("file", new Blob([JSON.stringify(content)], { type: "application/json" }));
+  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+    { method: "POST", headers: { Authorization: "Bearer "+accessToken }, body: form });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()).id;
+}
+
+function scheduleMeetingSave() {
+  clearTimeout(meetingSaveTimer);
+  meetingSaveTimer = setTimeout(async () => {
+    try {
+      if (!meetingFileId) meetingFileId = await createMeetingFile(meetings);
+      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+meetingFileId+"?uploadType=media",
+        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(meetings) });
+    } catch(e) {}
+  }, 1000);
+}
+
+function renderMeetings() {
+  const el = document.getElementById("meeting-boards");
+  if (!el) return;
+  if (meetings.length === 0) {
+    el.innerHTML = `<div class="empty">Noch keine Person oder Gremium angelegt.</div>`;
+    document.getElementById("meeting-add-area").innerHTML = "";
+    return;
+  }
+  el.innerHTML = meetings.map((m, mi) => {
+    const topics = m.topics || [];
+    const topicsHtml = topics.length
+      ? `<div class="meeting-topics">${topics.map((t,ti) => `
+          <div class="meeting-topic" onclick="checkMeetingTopic(${mi},${ti},this)">
+            <div class="mt-box"><span class="mt-check">✓</span></div>
+            <span class="mt-label">${esc(t)}</span>
+          </div>`).join("")}</div>`
+      : `<div class="meeting-topic-empty">Noch keine Themen.</div>`;
+    return `<div class="meeting-card">
+      <div class="meeting-card-header">
+        <div class="meeting-card-name">${esc(m.name)}</div>
+        <div class="meeting-card-actions"><button onclick="deleteMeeting(${mi})" title="Löschen">🗑️</button></div>
+      </div>
+      ${topicsHtml}
+      <div class="meeting-add-topic">
+        <input type="text" id="mt-input-${mi}" placeholder="Thema hinzufügen…" onkeydown="if(event.key==='Enter')addMeetingTopic(${mi})" />
+        <button onclick="addMeetingTopic(${mi})">+</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  if (addingMeeting) renderAddMeetingForm(); else document.getElementById("meeting-add-area").innerHTML = "";
+}
+
+function checkMeetingTopic(mi, ti, topicEl) {
+  const box = topicEl.querySelector(".mt-box");
+  const label = topicEl.querySelector(".mt-label");
+  box.classList.add("checking"); label.classList.add("checking");
+  topicEl.style.pointerEvents = "none";
+  setTimeout(() => {
+    meetings[mi].topics.splice(ti, 1);
+    renderMeetings();
+    scheduleMeetingSave();
+  }, 500);
+}
+
+function addMeetingTopic(mi) {
+  const input = document.getElementById("mt-input-"+mi);
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+  if (!meetings[mi].topics) meetings[mi].topics = [];
+  meetings[mi].topics.push(val);
+  renderMeetings();
+  scheduleMeetingSave();
+  setTimeout(() => { const ni = document.getElementById("mt-input-"+mi); if(ni) ni.focus(); }, 30);
+}
+
+function deleteMeeting(mi) {
+  if (!confirm("Diese Person/dieses Gremium wirklich löschen?")) return;
+  meetings.splice(mi, 1);
+  renderMeetings();
+  scheduleMeetingSave();
+}
+
+function startAddMeeting() { addingMeeting = true; renderMeetings(); setTimeout(()=>{ const el=document.getElementById("new-meeting-name"); if(el) el.focus(); },50); }
+function cancelAddMeeting() { addingMeeting = false; renderMeetings(); }
+
+function renderAddMeetingForm() {
+  document.getElementById("meeting-add-area").innerHTML = `
+    <div class="meeting-add-card">
+      <input type="text" id="new-meeting-name" placeholder="Name oder Gremium, z.B. Hannes, LK…" onkeydown="if(event.key==='Enter')confirmAddMeeting()" />
+      <button class="btn-cancel" onclick="cancelAddMeeting()">Abbrechen</button>
+      <button class="btn-save" onclick="confirmAddMeeting()">Anlegen</button>
+    </div>`;
+  setTimeout(() => { const el = document.getElementById("new-meeting-name"); if(el) el.focus(); }, 30);
+}
+
+function confirmAddMeeting() {
+  const input = document.getElementById("new-meeting-name");
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+  meetings.push({ name, topics: [] });
+  addingMeeting = false;
+  renderMeetings();
+  scheduleMeetingSave();
 }
 </script>
 </body>
