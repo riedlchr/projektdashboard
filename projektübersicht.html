@@ -1007,30 +1007,29 @@ function renderMeetings() {
   if (!el) return;
   if (meetings.length === 0) {
     el.innerHTML = `<div class="empty">Noch keine Person oder Gremium angelegt.</div>`;
-    document.getElementById("meeting-add-area").innerHTML = "";
-    return;
+  } else {
+    el.innerHTML = meetings.map((m, mi) => {
+      const topics = m.topics || [];
+      const topicsHtml = topics.length
+        ? `<div class="meeting-topics">${topics.map((t,ti) => `
+            <div class="meeting-topic" onclick="checkMeetingTopic(${mi},${ti},this)">
+              <div class="mt-box"><span class="mt-check">✓</span></div>
+              <span class="mt-label">${esc(t)}</span>
+            </div>`).join("")}</div>`
+        : `<div class="meeting-topic-empty">Noch keine Themen.</div>`;
+      return `<div class="meeting-card">
+        <div class="meeting-card-header">
+          <div class="meeting-card-name">${esc(m.name)}</div>
+          <div class="meeting-card-actions"><button onclick="deleteMeeting(${mi})" title="Löschen">🗑️</button></div>
+        </div>
+        ${topicsHtml}
+        <div class="meeting-add-topic">
+          <input type="text" id="mt-input-${mi}" placeholder="Thema hinzufügen…" onkeydown="if(event.key==='Enter')addMeetingTopic(${mi})" />
+          <button onclick="addMeetingTopic(${mi})">+</button>
+        </div>
+      </div>`;
+    }).join("");
   }
-  el.innerHTML = meetings.map((m, mi) => {
-    const topics = m.topics || [];
-    const topicsHtml = topics.length
-      ? `<div class="meeting-topics">${topics.map((t,ti) => `
-          <div class="meeting-topic" onclick="checkMeetingTopic(${mi},${ti},this)">
-            <div class="mt-box"><span class="mt-check">✓</span></div>
-            <span class="mt-label">${esc(t)}</span>
-          </div>`).join("")}</div>`
-      : `<div class="meeting-topic-empty">Noch keine Themen.</div>`;
-    return `<div class="meeting-card">
-      <div class="meeting-card-header">
-        <div class="meeting-card-name">${esc(m.name)}</div>
-        <div class="meeting-card-actions"><button onclick="deleteMeeting(${mi})" title="Löschen">🗑️</button></div>
-      </div>
-      ${topicsHtml}
-      <div class="meeting-add-topic">
-        <input type="text" id="mt-input-${mi}" placeholder="Thema hinzufügen…" onkeydown="if(event.key==='Enter')addMeetingTopic(${mi})" />
-        <button onclick="addMeetingTopic(${mi})">+</button>
-      </div>
-    </div>`;
-  }).join("");
 
   if (addingMeeting) renderAddMeetingForm(); else document.getElementById("meeting-add-area").innerHTML = "";
 }
