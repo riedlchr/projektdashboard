@@ -184,8 +184,14 @@
   .todo-input::placeholder { color: #d1d5db; }
   .todo-add-btn { padding: 7px 14px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 13px; font-family: inherit; font-weight: 600; flex-shrink: 0; }
   .todo-add-btn:hover { background: #374151; }
-  .todo-items { display: flex; flex-wrap: wrap; gap: 8px; }
-  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 13px; flex: 1 1 200px; min-width: 160px; max-width: 280px; display: flex; align-items: flex-start; gap: 8px; transition: box-shadow 0.15s, border-color 0.15s; cursor: pointer; border-left: 4px solid #d1d5db; }
+  .todo-columns { display: flex; gap: 14px; align-items: flex-start; }
+  .todo-column { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .todo-column-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+  .todo-column-label.red    { color: #dc2626; }
+  .todo-column-label.orange { color: #d97706; }
+  .todo-column-label.blue   { color: #2563eb; }
+  .todo-column-empty { font-size: 12px; color: #d1d5db; }
+  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 13px; display: flex; align-items: flex-start; gap: 8px; transition: box-shadow 0.15s, border-color 0.15s; cursor: pointer; border-left: 4px solid #d1d5db; }
   .todo-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
   .todo-item.prio-red    { border-left-color: #dc2626; }
   .todo-item.prio-orange { border-left-color: #d97706; }
@@ -241,6 +247,7 @@
     body.compact .card { flex: 1 1 calc(50% - 5px); min-width: 140px; }
     .termine-date { min-width: 90px; font-size: 11px; }
     .sync-bar { flex-direction: column; align-items: flex-start; }
+    .todo-columns { flex-direction: column; }
   }
 </style>
 </head>
@@ -298,7 +305,7 @@
         <input class="todo-input" id="todo-input" placeholder="Aufgabe eingeben und Enter drücken…" onkeydown="todoKeydown(event)" />
         <button class="todo-add-btn" onclick="addTodo()">+ Hinzufügen</button>
       </div>
-      <div class="todo-items" id="todo-items"></div>
+      <div id="todo-items"></div>
     </div>
     <hr class="section-divider">
 
@@ -915,14 +922,31 @@ function renderTodos() {
   if (!el) return;
   if (countEl) countEl.textContent = todos.length ? todos.length + " offen" : "";
   if (todos.length === 0) { el.innerHTML = `<div class="todo-empty">Noch keine Einträge.</div>`; return; }
-  const order = sortedTodoIndices();
-  el.innerHTML = order.map(i => {
-    const t = todos[i];
-    return `<div class="todo-item prio-${t.priority||'blue'}" onclick="cycleTodoPriority(${i})">
-      <div class="todo-cb" onclick="event.stopPropagation();checkTodo(${i},this)"><span class="todo-cb-check">✓</span></div>
-      <div class="todo-label">${esc(t.text)}</div>
+
+  const groups = { red: [], orange: [], blue: [] };
+  todos.forEach((t, i) => { groups[t.priority || "blue"].push(i); });
+
+  function renderColumn(label, cls, indices) {
+    const items = indices.length
+      ? indices.map(i => {
+          const t = todos[i];
+          return `<div class="todo-item prio-${t.priority||'blue'}" onclick="cycleTodoPriority(${i})">
+            <div class="todo-cb" onclick="event.stopPropagation();checkTodo(${i},this)"><span class="todo-cb-check">✓</span></div>
+            <div class="todo-label">${esc(t.text)}</div>
+          </div>`;
+        }).join("")
+      : `<div class="todo-column-empty">–</div>`;
+    return `<div class="todo-column">
+      <div class="todo-column-label ${cls}">${label} (${indices.length})</div>
+      ${items}
     </div>`;
-  }).join("");
+  }
+
+  el.innerHTML = `<div class="todo-columns">
+    ${renderColumn("Dringend", "red", groups.red)}
+    ${renderColumn("Etwas dringend", "orange", groups.orange)}
+    ${renderColumn("Nicht dringend", "blue", groups.blue)}
+  </div>`;
 }
 
 function cycleTodoPriority(index) {
