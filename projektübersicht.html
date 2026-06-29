@@ -191,18 +191,43 @@
   .todo-column-label.orange { color: #d97706; }
   .todo-column-label.blue   { color: #2563eb; }
   .todo-column-empty { font-size: 12px; color: #d1d5db; }
-  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 13px; display: flex; align-items: flex-start; gap: 8px; transition: box-shadow 0.15s, border-color 0.15s; cursor: pointer; border-left: 4px solid #d1d5db; }
+
+  .todo-overdue-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .todo-overdue-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #dc2626; margin-bottom: 6px; width: 100%; }
+
+  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 12px; display: flex; align-items: flex-start; gap: 8px; transition: box-shadow 0.15s, border-color 0.15s; border-left: 4px solid #d1d5db; }
   .todo-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
   .todo-item.prio-red    { border-left-color: #dc2626; }
   .todo-item.prio-orange { border-left-color: #d97706; }
   .todo-item.prio-blue   { border-left-color: #2563eb; }
+  .todo-item.overdue { border-color: #fca5a5 !important; border-left-color: #dc2626 !important; background: #fef2f2; }
+
   .todo-cb { width: 14px; height: 14px; border: 1.5px solid #d1d5db; border-radius: 50%; flex-shrink: 0; margin-top: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: #fff; }
   .todo-cb:hover { border-color: #16a34a; }
   .todo-cb.completing { border-color: #16a34a; background: #16a34a; }
   .todo-cb-check { display: none; color: #fff; font-size: 8px; font-weight: 700; }
   .todo-cb.completing .todo-cb-check { display: block; }
-  .todo-label { font-size: 13px; color: #374151; line-height: 1.4; flex: 1; }
+
+  .todo-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .todo-label { font-size: 13px; color: #374151; line-height: 1.4; }
   .todo-label.done { text-decoration: line-through; color: #9ca3af; }
+
+  .todo-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .todo-dots { display: flex; gap: 4px; }
+  .todo-dot { width: 11px; height: 11px; border-radius: 50%; cursor: pointer; border: 1.5px solid transparent; transition: transform 0.1s; }
+  .todo-dot:hover { transform: scale(1.2); }
+  .todo-dot.red    { background: #fca5a5; }
+  .todo-dot.orange { background: #fcd34d; }
+  .todo-dot.blue   { background: #93c5fd; }
+  .todo-dot.active.red    { background: #dc2626; border-color: #991b1b; }
+  .todo-dot.active.orange { background: #d97706; border-color: #92400e; }
+  .todo-dot.active.blue   { background: #2563eb; border-color: #1e3a8a; }
+
+  .todo-date-input { font-size: 11px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2px 5px; font-family: inherit; color: #6b7280; outline: none; background: #fafafa; width: 92px; }
+  .todo-date-input:focus { border-color: #9ca3af; }
+  .todo-due-label { font-size: 11px; color: #9ca3af; }
+  .todo-due-label.overdue { color: #dc2626; font-weight: 600; }
+
   .todo-empty { font-size: 13px; color: #d1d5db; padding: 8px 0; }
 
   /* Besprechungsthemen */
@@ -878,8 +903,8 @@ async function loadTodosFromDrive() {
       todos = [];
       todoFileId = await createTodoFile([]);
     }
-    // Migrate old string-only todos to objects
-    todos = todos.map(t => typeof t === "string" ? { text: t, priority: "blue" } : t);
+    // Migrate old string-only todos to objects, ensure due field exists
+    todos = todos.map(t => typeof t === "string" ? { text: t, priority: "blue", due: "" } : { due: "", ...t });
   } catch(e) {
     todos = [];
   }
@@ -908,13 +933,38 @@ function scheduleTodoSave() {
   }, 1000);
 }
 
-const PRIORITY_ORDER = { red: 0, orange: 1, blue: 2 };
-const PRIORITY_CYCLE = { blue: "orange", orange: "red", red: "blue" };
+function isTodoOverdue(due) {
+  if (!due) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(due); d.setHours(0,0,0,0);
+  return d <= today;
+}
 
-function sortedTodoIndices() {
-  return todos
-    .map((t, i) => i)
-    .sort((a, b) => (PRIORITY_ORDER[todos[a].priority] ?? 2) - (PRIORITY_ORDER[todos[b].priority] ?? 2));
+function fmtTodoDue(due) {
+  if (!due) return "";
+  const d = new Date(due); d.setHours(12);
+  return d.toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
+function renderTodoCard(i) {
+  const t = todos[i];
+  const overdue = isTodoOverdue(t.due);
+  const prio = t.priority || "blue";
+  return `<div class="todo-item prio-${prio}${overdue ? ' overdue' : ''}">
+    <div class="todo-cb" onclick="checkTodo(${i},this)"><span class="todo-cb-check">✓</span></div>
+    <div class="todo-body">
+      <div class="todo-label">${esc(t.text)}</div>
+      <div class="todo-meta">
+        <div class="todo-dots">
+          <span class="todo-dot red${prio==='red'?' active':''}" onclick="setTodoPriority(${i},'red')" title="Dringend"></span>
+          <span class="todo-dot orange${prio==='orange'?' active':''}" onclick="setTodoPriority(${i},'orange')" title="Etwas dringend"></span>
+          <span class="todo-dot blue${prio==='blue'?' active':''}" onclick="setTodoPriority(${i},'blue')" title="Nicht dringend"></span>
+        </div>
+        <input type="date" class="todo-date-input" value="${esc(t.due||'')}" onchange="setTodoDue(${i},this.value)" title="Fälligkeitsdatum" />
+        ${t.due ? `<span class="todo-due-label${overdue?' overdue':''}">${overdue?'⚠️ ':'📅 '}${fmtTodoDue(t.due)}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
 }
 
 function renderTodos() {
@@ -924,36 +974,51 @@ function renderTodos() {
   if (countEl) countEl.textContent = todos.length ? todos.length + " offen" : "";
   if (todos.length === 0) { el.innerHTML = `<div class="todo-empty">Noch keine Einträge.</div>`; return; }
 
+  const overdueIdx = [];
   const groups = { red: [], orange: [], blue: [] };
-  todos.forEach((t, i) => { groups[t.priority || "blue"].push(i); });
+  todos.forEach((t, i) => {
+    if (isTodoOverdue(t.due)) overdueIdx.push(i);
+    else groups[t.priority || "blue"].push(i);
+  });
+  overdueIdx.sort((a,b) => new Date(todos[a].due) - new Date(todos[b].due));
+
+  let html = "";
+  if (overdueIdx.length) {
+    html += `<div class="todo-overdue-row">
+      <div class="todo-overdue-label">⚠️ Fällig (${overdueIdx.length})</div>
+      ${overdueIdx.map(renderTodoCard).join("")}
+    </div>`;
+  }
 
   function renderColumn(label, cls, indices) {
-    const items = indices.length
-      ? indices.map(i => {
-          const t = todos[i];
-          return `<div class="todo-item prio-${t.priority||'blue'}" onclick="cycleTodoPriority(${i})">
-            <div class="todo-cb" onclick="event.stopPropagation();checkTodo(${i},this)"><span class="todo-cb-check">✓</span></div>
-            <div class="todo-label">${esc(t.text)}</div>
-          </div>`;
-        }).join("")
-      : `<div class="todo-column-empty">–</div>`;
+    const items = indices.length ? indices.map(renderTodoCard).join("") : `<div class="todo-column-empty">–</div>`;
     return `<div class="todo-column">
       <div class="todo-column-label ${cls}">${label} (${indices.length})</div>
       ${items}
     </div>`;
   }
 
-  el.innerHTML = `<div class="todo-columns">
+  html += `<div class="todo-columns">
     ${renderColumn("Dringend", "red", groups.red)}
     ${renderColumn("Etwas dringend", "orange", groups.orange)}
     ${renderColumn("Nicht dringend", "blue", groups.blue)}
   </div>`;
+
+  el.innerHTML = html;
 }
 
-function cycleTodoPriority(index) {
+function setTodoPriority(index, priority) {
   const t = todos[index];
   if (!t) return;
-  t.priority = PRIORITY_CYCLE[t.priority || "blue"];
+  t.priority = priority;
+  renderTodos();
+  scheduleTodoSave();
+}
+
+function setTodoDue(index, value) {
+  const t = todos[index];
+  if (!t) return;
+  t.due = value || "";
   renderTodos();
   scheduleTodoSave();
 }
@@ -962,7 +1027,7 @@ function addTodo() {
   const input = document.getElementById("todo-input");
   const val = input.value.trim();
   if (!val) return;
-  todos.unshift({ text: val, priority: "blue" });
+  todos.unshift({ text: val, priority: "blue", due: "" });
   input.value = "";
   renderTodos();
   scheduleTodoSave();
@@ -973,10 +1038,10 @@ function todoKeydown(e) { if (e.key === "Enter") addTodo(); }
 
 function checkTodo(index, cbEl) {
   cbEl.classList.add("completing");
-  const labelEl = cbEl.nextElementSibling;
-  if (labelEl) labelEl.classList.add("done");
   cbEl.style.pointerEvents = "none";
-  setTimeout(() => { todos.splice(index, 1); renderTodos(); scheduleTodoSave(); }, 500);
+  const card = cbEl.closest(".todo-item");
+  if (card) card.style.opacity = "0.5";
+  setTimeout(() => { todos.splice(index, 1); renderTodos(); scheduleTodoSave(); }, 400);
 }
 
 // ── Besprechungsthemen (Google Drive) ──────────────────────────

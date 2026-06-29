@@ -37,18 +37,34 @@
 
   /* Items */
   .todo-list { display: flex; flex-direction: column; gap: 8px; }
-  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; transition: opacity 0.3s, border-color 0.15s; border-left: 5px solid #d1d5db; cursor: pointer; }
+  .overdue-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #dc2626; margin: 4px 0 6px; }
+  .todo-item { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 12px; transition: opacity 0.3s, border-color 0.15s; border-left: 5px solid #d1d5db; }
   .todo-item.done { opacity: 0; }
   .todo-item.prio-red    { border-left-color: #dc2626; }
   .todo-item.prio-orange { border-left-color: #d97706; }
   .todo-item.prio-blue   { border-left-color: #2563eb; }
-  .todo-cb { width: 22px; height: 22px; border: 2px solid #d1d5db; border-radius: 50%; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: #fff; }
+  .todo-item.overdue { border-color: #fca5a5 !important; border-left-color: #dc2626 !important; background: #fef2f2; }
+  .todo-cb { width: 22px; height: 22px; border: 2px solid #d1d5db; border-radius: 50%; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: #fff; margin-top: 1px; }
   .todo-cb:active { transform: scale(0.9); }
   .todo-cb.completing { border-color: #16a34a; background: #16a34a; }
   .todo-cb-check { display: none; color: #fff; font-size: 11px; font-weight: 700; }
   .todo-cb.completing .todo-cb-check { display: block; }
-  .todo-label { font-size: 15px; color: #111; line-height: 1.4; flex: 1; }
+  .todo-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .todo-label { font-size: 15px; color: #111; line-height: 1.4; }
   .todo-label.done { text-decoration: line-through; color: #9ca3af; }
+  .todo-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .todo-dots { display: flex; gap: 6px; }
+  .todo-dot { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
+  .todo-dot:active { transform: scale(0.85); }
+  .todo-dot.red    { background: #fca5a5; }
+  .todo-dot.orange { background: #fcd34d; }
+  .todo-dot.blue   { background: #93c5fd; }
+  .todo-dot.active.red    { background: #dc2626; border-color: #991b1b; }
+  .todo-dot.active.orange { background: #d97706; border-color: #92400e; }
+  .todo-dot.active.blue   { background: #2563eb; border-color: #1e3a8a; }
+  .todo-date-input { font-size: 12px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3px 6px; font-family: inherit; color: #6b7280; outline: none; background: #fafafa; width: 100px; }
+  .todo-due-label { font-size: 11px; color: #9ca3af; }
+  .todo-due-label.overdue { color: #dc2626; font-weight: 700; }
 
   .empty { text-align: center; color: #d1d5db; padding: 40px 0; font-size: 15px; }
 
@@ -165,8 +181,8 @@ async function loadFromDrive() {
       todos = [];
       todoFileId = await createFile([]);
     }
-    // Migrate old string-only todos to objects
-    todos = todos.map(t => typeof t === "string" ? { text: t, priority: "blue" } : t);
+    // Migrate old string-only todos to objects, ensure due field exists
+    todos = todos.map(t => typeof t === "string" ? { text: t, priority: "blue", due: "" } : { due: "", ...t });
     setSyncLabel("", "");
   } catch(e) {
     todos = [];
@@ -209,13 +225,41 @@ function setSyncLabel(text, cls) {
 // ── Render ────────────────────────────────────────────────────
 function esc(str) { return (str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-const PRIORITY_ORDER = { red: 0, orange: 1, blue: 2 };
-const PRIORITY_CYCLE = { blue: "orange", orange: "red", red: "blue" };
+function isTodoOverdue(due) {
+  if (!due) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(due); d.setHours(0,0,0,0);
+  return d <= today;
+}
 
-function sortedTodoIndices() {
-  return todos
-    .map((t, i) => i)
-    .sort((a, b) => (PRIORITY_ORDER[todos[a].priority] ?? 2) - (PRIORITY_ORDER[todos[b].priority] ?? 2));
+function fmtTodoDue(due) {
+  if (!due) return "";
+  const d = new Date(due); d.setHours(12);
+  return d.toLocaleDateString("de-AT", { day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
+function renderTodoCard(i) {
+  const t = todos[i];
+  const overdue = isTodoOverdue(t.due);
+  const prio = t.priority || "blue";
+  return `
+    <div class="todo-item prio-${prio}${overdue?' overdue':''}" id="ti-${i}">
+      <div class="todo-cb" onclick="checkTodo(${i}, this)">
+        <span class="todo-cb-check">✓</span>
+      </div>
+      <div class="todo-body">
+        <div class="todo-label">${esc(t.text)}</div>
+        <div class="todo-meta">
+          <div class="todo-dots">
+            <span class="todo-dot red${prio==='red'?' active':''}" onclick="setTodoPriority(${i},'red')"></span>
+            <span class="todo-dot orange${prio==='orange'?' active':''}" onclick="setTodoPriority(${i},'orange')"></span>
+            <span class="todo-dot blue${prio==='blue'?' active':''}" onclick="setTodoPriority(${i},'blue')"></span>
+          </div>
+          <input type="date" class="todo-date-input" value="${esc(t.due||'')}" onchange="setTodoDue(${i},this.value)" />
+          ${t.due ? `<span class="todo-due-label${overdue?' overdue':''}">${overdue?'⚠️ ':'📅 '}${fmtTodoDue(t.due)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
 }
 
 function renderTodos() {
@@ -224,23 +268,37 @@ function renderTodos() {
   if (!el) return;
   if (countEl) countEl.textContent = todos.length ? todos.length + (todos.length === 1 ? " offene Aufgabe" : " offene Aufgaben") : "";
   if (todos.length === 0) { el.innerHTML = `<div class="empty">Nichts offen. 🎉</div>`; return; }
-  const order = sortedTodoIndices();
-  el.innerHTML = order.map(i => {
-    const t = todos[i];
-    return `
-    <div class="todo-item prio-${t.priority||'blue'}" id="ti-${i}" onclick="cycleTodoPriority(${i})">
-      <div class="todo-cb" onclick="event.stopPropagation();checkTodo(${i}, this)">
-        <span class="todo-cb-check">✓</span>
-      </div>
-      <div class="todo-label">${esc(t.text)}</div>
-    </div>`;
-  }).join("");
+
+  const overdueIdx = [];
+  const normalIdx = [];
+  todos.forEach((t, i) => { if (isTodoOverdue(t.due)) overdueIdx.push(i); else normalIdx.push(i); });
+  overdueIdx.sort((a,b) => new Date(todos[a].due) - new Date(todos[b].due));
+  normalIdx.sort((a,b) => {
+    const order = { red:0, orange:1, blue:2 };
+    return (order[todos[a].priority]??2) - (order[todos[b].priority]??2);
+  });
+
+  let html = "";
+  if (overdueIdx.length) {
+    html += `<div class="overdue-label">⚠️ Fällig (${overdueIdx.length})</div>`;
+    html += overdueIdx.map(renderTodoCard).join("");
+  }
+  html += normalIdx.map(renderTodoCard).join("");
+  el.innerHTML = html;
 }
 
-function cycleTodoPriority(index) {
+function setTodoPriority(index, priority) {
   const t = todos[index];
   if (!t) return;
-  t.priority = PRIORITY_CYCLE[t.priority || "blue"];
+  t.priority = priority;
+  renderTodos();
+  scheduleSave();
+}
+
+function setTodoDue(index, value) {
+  const t = todos[index];
+  if (!t) return;
+  t.due = value || "";
   renderTodos();
   scheduleSave();
 }
@@ -249,7 +307,7 @@ function addTodo() {
   const input = document.getElementById("todo-input");
   const val = input.value.trim();
   if (!val) return;
-  todos.unshift({ text: val, priority: "blue" });
+  todos.unshift({ text: val, priority: "blue", due: "" });
   input.value = "";
   renderTodos();
   scheduleSave();
@@ -260,14 +318,14 @@ function todoKeydown(e) { if (e.key === "Enter") addTodo(); }
 
 function checkTodo(index, cbEl) {
   cbEl.classList.add("completing");
-  const labelEl = cbEl.nextElementSibling;
-  if (labelEl) labelEl.classList.add("done");
   cbEl.style.pointerEvents = "none";
+  const card = cbEl.closest(".todo-item");
+  if (card) card.style.opacity = "0.5";
   setTimeout(() => {
     todos.splice(index, 1);
     renderTodos();
     scheduleSave();
-  }, 500);
+  }, 400);
 }
 </script>
 </body>
