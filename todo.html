@@ -59,9 +59,9 @@
   .todo-dot.red    { background: #fca5a5; }
   .todo-dot.orange { background: #fcd34d; }
   .todo-dot.blue   { background: #93c5fd; }
-  .todo-dot.active.red    { background: #dc2626; border-color: #991b1b; }
-  .todo-dot.active.orange { background: #d97706; border-color: #92400e; }
-  .todo-dot.active.blue   { background: #2563eb; border-color: #1e3a8a; }
+  .todo-dot.active.red    { background: #dc2626; border-color: #991b1b; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dc2626; }
+  .todo-dot.active.orange { background: #d97706; border-color: #92400e; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #d97706; }
+  .todo-dot.active.blue   { background: #2563eb; border-color: #1e3a8a; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2563eb; }
   .todo-date-input { font-size: 12px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3px 6px; font-family: inherit; color: #6b7280; outline: none; background: #fafafa; width: 100px; }
   .todo-due-label { font-size: 11px; color: #9ca3af; }
   .todo-due-label.overdue { color: #dc2626; font-weight: 700; }
@@ -307,7 +307,7 @@ function addTodo() {
   const input = document.getElementById("todo-input");
   const val = input.value.trim();
   if (!val) return;
-  todos.unshift({ text: val, priority: "blue", due: "" });
+  todos.unshift({ text: val, priority: "red", due: "" });
   input.value = "";
   renderTodos();
   scheduleSave();
