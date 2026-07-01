@@ -26,6 +26,10 @@
   .btn-dash:hover { color: #374151; border-color: #9ca3af; }
   .btn-logout { background: none; border: none; color: #d1d5db; cursor: pointer; font-size: 12px; font-family: inherit; }
   .btn-logout:hover { color: #9ca3af; }
+  .btn-save-now { padding: 7px 16px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: background 0.15s; }
+  .btn-save-now:hover { background: #374151; }
+  .btn-save-now.saving { background: #6b7280; cursor: default; }
+  .btn-save-now.saved  { background: #16a34a; }
 
   /* Input */
   .input-area { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -100,6 +104,7 @@
         <h1>Schnelle To-dos</h1>
         <div class="header-right">
           <a class="btn-dash" href="projektübersicht.html">← Dashboard</a>
+          <button class="btn-save-now" id="btn-save-now" onclick="saveNow()">💾 Speichern</button>
           <button class="btn-logout" onclick="signOut()">Abmelden</button>
         </div>
       </div>
@@ -216,6 +221,24 @@ function scheduleSave() {
       setTimeout(() => setSyncLabel("", ""), 2000);
     } catch(e) { setSyncLabel("Fehler beim Speichern", ""); }
   }, 800);
+}
+
+async function saveNow() {
+  const btn = document.getElementById("btn-save-now");
+  if (btn) { btn.classList.add("saving"); btn.textContent = "⏳ Speichert…"; btn.disabled = true; }
+  clearTimeout(saveTimer);
+  try {
+    if (!todoFileId) todoFileId = await createFile(todos);
+    else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+todoFileId+"?uploadType=media",
+      { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(todos) });
+    setSyncLabel("Gespeichert ✓", "saved");
+    setTimeout(() => setSyncLabel("", ""), 2000);
+    if (btn) { btn.classList.remove("saving"); btn.classList.add("saved"); btn.textContent = "✓ Gespeichert"; btn.disabled = false; }
+    setTimeout(() => { if (btn) { btn.classList.remove("saved"); btn.textContent = "💾 Speichern"; } }, 2000);
+  } catch(e) {
+    setSyncLabel("Fehler beim Speichern", "");
+    if (btn) { btn.classList.remove("saving"); btn.textContent = "💾 Speichern"; btn.disabled = false; }
+  }
 }
 
 function setSyncLabel(text, cls) {

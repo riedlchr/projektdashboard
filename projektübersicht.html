@@ -37,6 +37,10 @@
   .btn-compact:hover:not(.active) { border-color: #9ca3af; }
   .btn-logout { padding: 4px 10px; border-radius: 6px; border: none; background: none; color: #9ca3af; cursor: pointer; font-size: 12px; font-family: inherit; }
   .btn-logout:hover { color: #374151; }
+  .btn-save-now { padding: 5px 14px; border-radius: 8px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 12px; font-weight: 600; font-family: inherit; transition: background 0.15s; display: flex; align-items: center; gap: 5px; }
+  .btn-save-now:hover { background: #374151; }
+  .btn-save-now.saving { background: #6b7280; cursor: default; }
+  .btn-save-now.saved  { background: #16a34a; }
 
   .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
   .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid transparent; cursor: pointer; background: #efefed; color: #9ca3af; transition: all 0.15s; font-family: inherit; }
@@ -304,6 +308,7 @@
         </div>
       </div>
       <div class="sync-right">
+        <button class="btn-save-now" id="btn-save-now" onclick="saveNow()">💾 Speichern</button>
         <button class="btn-compact" id="compact-btn" onclick="toggleCompact()">Kompakt</button>
         <button class="btn-logout" onclick="signOut()">Abmelden</button>
       </div>
@@ -589,6 +594,38 @@ function scheduleSave() {
       setSyncState("ok", "Gespeichert · " + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" }));
     } catch(e) { setSyncState("err", "Speichern fehlgeschlagen"); }
   }, 1200);
+}
+
+async function saveNow() {
+  const btn = document.getElementById("btn-save-now");
+  if (btn) { btn.classList.add("saving"); btn.textContent = "⏳ Speichert…"; btn.disabled = true; }
+  clearTimeout(saveTimer);
+  clearTimeout(todoSaveTimer);
+  clearTimeout(meetingSaveTimer);
+  try {
+    if (!accessToken) { setSyncState("err", "Nicht angemeldet"); return; }
+    // Save projects
+    if (!driveFileId) driveFileId = await createFile(projects);
+    else await updateFile(driveFileId, projects);
+    // Save todos
+    if (todos.length >= 0) {
+      if (!todoFileId) todoFileId = await createTodoFile(todos);
+      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+todoFileId+"?uploadType=media",
+        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(todos) });
+    }
+    // Save meetings
+    if (meetings.length >= 0) {
+      if (!meetingFileId) meetingFileId = await createMeetingFile(meetings);
+      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+meetingFileId+"?uploadType=media",
+        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(meetings) });
+    }
+    setSyncState("ok", "Gespeichert · " + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" }));
+    if (btn) { btn.classList.remove("saving"); btn.classList.add("saved"); btn.textContent = "✓ Gespeichert"; btn.disabled = false; }
+    setTimeout(() => { if (btn) { btn.classList.remove("saved"); btn.textContent = "💾 Speichern"; } }, 2000);
+  } catch(e) {
+    setSyncState("err", "Speichern fehlgeschlagen");
+    if (btn) { btn.classList.remove("saving"); btn.textContent = "💾 Speichern"; btn.disabled = false; }
+  }
 }
 
 // ── Render ────────────────────────────────────────────────────
