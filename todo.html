@@ -43,6 +43,7 @@
   .todo-item.prio-red    { border-left-color: #dc2626; }
   .todo-item.prio-orange { border-left-color: #d97706; }
   .todo-item.prio-blue   { border-left-color: #2563eb; }
+  .todo-item.prio-purple { border-left-color: #7c3aed; }
   .todo-item.overdue { border-color: #fca5a5 !important; border-left-color: #dc2626 !important; background: #fef2f2; }
   .todo-cb { width: 22px; height: 22px; border: 2px solid #d1d5db; border-radius: 50%; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: #fff; margin-top: 1px; }
   .todo-cb:active { transform: scale(0.9); }
@@ -62,6 +63,8 @@
   .todo-dot.active.red    { background: #dc2626; border-color: #991b1b; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dc2626; }
   .todo-dot.active.orange { background: #d97706; border-color: #92400e; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #d97706; }
   .todo-dot.active.blue   { background: #2563eb; border-color: #1e3a8a; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2563eb; }
+  .todo-dot.purple        { background: #ddd6fe; }
+  .todo-dot.active.purple { background: #7c3aed; border-color: #5b21b6; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #7c3aed; }
   .todo-date-input { font-size: 12px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3px 6px; font-family: inherit; color: #6b7280; outline: none; background: #fafafa; width: 100px; }
   .todo-due-label { font-size: 11px; color: #9ca3af; }
   .todo-due-label.overdue { color: #dc2626; font-weight: 700; }
@@ -254,6 +257,7 @@ function renderTodoCard(i) {
             <span class="todo-dot red${prio==='red'?' active':''}" onclick="setTodoPriority(${i},'red')"></span>
             <span class="todo-dot orange${prio==='orange'?' active':''}" onclick="setTodoPriority(${i},'orange')"></span>
             <span class="todo-dot blue${prio==='blue'?' active':''}" onclick="setTodoPriority(${i},'blue')"></span>
+            <span class="todo-dot purple${prio==='purple'? ' active':''}" onclick="setTodoPriority(${i},'purple')" title="Wartet auf andere"></span>
           </div>
           <input type="date" class="todo-date-input" value="${esc(t.due||'')}" onchange="setTodoDue(${i},this.value)" />
           ${t.due ? `<span class="todo-due-label${overdue?' overdue':''}">${overdue?'⚠️ ':'📅 '}${fmtTodoDue(t.due)}</span>` : ''}
@@ -274,8 +278,8 @@ function renderTodos() {
   todos.forEach((t, i) => { if (isTodoOverdue(t.due)) overdueIdx.push(i); else normalIdx.push(i); });
   overdueIdx.sort((a,b) => new Date(todos[a].due) - new Date(todos[b].due));
   normalIdx.sort((a,b) => {
-    const order = { red:0, orange:1, blue:2 };
-    return (order[todos[a].priority]??2) - (order[todos[b].priority]??2);
+    const order = { red:0, orange:1, blue:2, purple:3 };
+    return (order[todos[a].priority]??0) - (order[todos[b].priority]??0);
   });
 
   let html = "";

@@ -190,6 +190,7 @@
   .todo-column-label.red    { color: #dc2626; }
   .todo-column-label.orange { color: #d97706; }
   .todo-column-label.blue   { color: #2563eb; }
+  .todo-column-label.purple { color: #7c3aed; }
   .todo-column-empty { font-size: 12px; color: #d1d5db; }
 
   .todo-overdue-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -200,6 +201,7 @@
   .todo-item.prio-red    { border-left-color: #dc2626; }
   .todo-item.prio-orange { border-left-color: #d97706; }
   .todo-item.prio-blue   { border-left-color: #2563eb; }
+  .todo-item.prio-purple { border-left-color: #7c3aed; }
   .todo-item.overdue { border-color: #fca5a5 !important; border-left-color: #dc2626 !important; background: #fef2f2; }
 
   .todo-cb { width: 14px; height: 14px; border: 1.5px solid #d1d5db; border-radius: 50%; flex-shrink: 0; margin-top: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: #fff; }
@@ -222,6 +224,8 @@
   .todo-dot.active.red    { background: #dc2626; border-color: #991b1b; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dc2626; }
   .todo-dot.active.orange { background: #d97706; border-color: #92400e; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #d97706; }
   .todo-dot.active.blue   { background: #2563eb; border-color: #1e3a8a; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2563eb; }
+  .todo-dot.purple        { background: #ddd6fe; }
+  .todo-dot.active.purple { background: #7c3aed; border-color: #5b21b6; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #7c3aed; }
 
   .todo-date-input { font-size: 11px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2px 5px; font-family: inherit; color: #6b7280; outline: none; background: #fafafa; width: 92px; }
   .todo-date-input:focus { border-color: #9ca3af; }
@@ -959,6 +963,7 @@ function renderTodoCard(i) {
           <span class="todo-dot red${prio==='red'?' active':''}" onclick="setTodoPriority(${i},'red')" title="Dringend"></span>
           <span class="todo-dot orange${prio==='orange'?' active':''}" onclick="setTodoPriority(${i},'orange')" title="Etwas dringend"></span>
           <span class="todo-dot blue${prio==='blue'?' active':''}" onclick="setTodoPriority(${i},'blue')" title="Nicht dringend"></span>
+          <span class="todo-dot purple${prio==='purple'? ' active':''}" onclick="setTodoPriority(${i},'purple')" title="Wartet auf andere"></span>
         </div>
         <input type="date" class="todo-date-input" value="${esc(t.due||'')}" onchange="setTodoDue(${i},this.value)" title="Fälligkeitsdatum" />
         ${t.due ? `<span class="todo-due-label${overdue?' overdue':''}">${overdue?'⚠️ ':'📅 '}${fmtTodoDue(t.due)}</span>` : ''}
@@ -975,10 +980,10 @@ function renderTodos() {
   if (todos.length === 0) { el.innerHTML = `<div class="todo-empty">Noch keine Einträge.</div>`; return; }
 
   const overdueIdx = [];
-  const groups = { red: [], orange: [], blue: [] };
+  const groups = { red: [], orange: [], blue: [], purple: [] };
   todos.forEach((t, i) => {
     if (isTodoOverdue(t.due)) overdueIdx.push(i);
-    else groups[t.priority || "blue"].push(i);
+    else groups[t.priority || "red"].push(i);
   });
   overdueIdx.sort((a,b) => new Date(todos[a].due) - new Date(todos[b].due));
 
@@ -1002,6 +1007,7 @@ function renderTodos() {
     ${renderColumn("Dringend", "red", groups.red)}
     ${renderColumn("Etwas dringend", "orange", groups.orange)}
     ${renderColumn("Nicht dringend", "blue", groups.blue)}
+    ${renderColumn("Wartet auf andere", "purple", groups.purple)}
   </div>`;
 
   el.innerHTML = html;
