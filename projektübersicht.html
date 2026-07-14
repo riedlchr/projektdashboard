@@ -538,10 +538,51 @@ function setSyncState(state, label) {
   dot.className = "sync-dot" + (state ? " "+state : "");
   lbl.textContent = label;
 }
+
+// Refresh token silently when expired
+function refreshToken() {
+  return new Promise((resolve, reject) => {
+    const newClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID, scope: SCOPE,
+      login_hint: "mail@christophriedl.at",
+      callback: (resp) => {
+        if (resp.error) { reject(new Error(resp.error)); return; }
+        accessToken = resp.access_token;
+        resolve();
+      }
+    });
+    newClient.requestAccessToken({ prompt: "" });
+  });
+}
+
 async function driveRequest(method, url, body) {
-  const headers = { Authorization: "Bearer " + accessToken };
-  if (body) headers["Content-Type"] = "application/json";
-  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const doRequest = async () => {
+    const headers = { Authorization: "Bearer " + accessToken };
+    if (body) headers["Content-Type"] = "application/json";
+    return fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  };
+  let res = await doRequest();
+  if (res.status === 401) {
+    // Token expired – refresh and retry once
+    setSyncState("busy", "Token erneuert…");
+    try { await refreshToken(); } catch(e) { throw new Error("Token-Erneuerung fehlgeschlagen"); }
+    res = await doRequest();
+  }
+  if (!res.ok) throw new Error(await res.text());
+  return res;
+}
+
+async function driveUpdate(fileId, content) {
+  const doRequest = async () => fetch(
+    "https://www.googleapis.com/upload/drive/v3/files/"+fileId+"?uploadType=media",
+    { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(content) }
+  );
+  let res = await doRequest();
+  if (res.status === 401) {
+    setSyncState("busy", "Token erneuert…");
+    try { await refreshToken(); } catch(e) { throw new Error("Token-Erneuerung fehlgeschlagen"); }
+    res = await doRequest();
+  }
   if (!res.ok) throw new Error(await res.text());
   return res;
 }
@@ -565,8 +606,7 @@ async function createFile(content) {
   return (await res.json()).id;
 }
 async function updateFile(id, content) {
-  await fetch("https://www.googleapis.com/upload/drive/v3/files/"+id+"?uploadType=media",
-    { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(content) });
+  await driveUpdate(id, content);
 }
 async function loadFromDrive() {
   setSyncState("busy", "Lade Daten…");
@@ -610,14 +650,12 @@ async function saveNow() {
     // Save todos
     if (todos.length >= 0) {
       if (!todoFileId) todoFileId = await createTodoFile(todos);
-      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+todoFileId+"?uploadType=media",
-        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(todos) });
+      else await driveUpdate(todoFileId, todos);
     }
     // Save meetings
     if (meetings.length >= 0) {
       if (!meetingFileId) meetingFileId = await createMeetingFile(meetings);
-      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+meetingFileId+"?uploadType=media",
-        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(meetings) });
+      else await driveUpdate(meetingFileId, meetings);
     }
     setSyncState("ok", "Gespeichert · " + new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" }));
     if (btn) { btn.classList.remove("saving"); btn.classList.add("saved"); btn.textContent = "✓ Gespeichert"; btn.disabled = false; }
@@ -968,8 +1006,7 @@ function scheduleTodoSave() {
   todoSaveTimer = setTimeout(async () => {
     try {
       if (!todoFileId) todoFileId = await createTodoFile(todos);
-      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+todoFileId+"?uploadType=media",
-        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(todos) });
+      else await driveUpdate(todoFileId, todos);
     } catch(e) {}
   }, 1000);
 }
@@ -1129,8 +1166,7 @@ function scheduleMeetingSave() {
   meetingSaveTimer = setTimeout(async () => {
     try {
       if (!meetingFileId) meetingFileId = await createMeetingFile(meetings);
-      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+meetingFileId+"?uploadType=media",
-        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(meetings) });
+      else await driveUpdate(meetingFileId, meetings);
     } catch(e) {}
   }, 1000);
 }
