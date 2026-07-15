@@ -139,6 +139,7 @@ window.addEventListener("load", () => {
       if (resp.error) return;
       accessToken = resp.access_token;
       localStorage.setItem("caritas_signed_in", "1");
+      scheduleTokenRefresh();
       showApp();
       await loadFromDrive();
     }
@@ -167,46 +168,23 @@ function showApp() {
 }
 
 // ── Drive ─────────────────────────────────────────────────────
-function refreshToken() {
-  return new Promise((resolve, reject) => {
-    const nc = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID, scope: SCOPE,
-      login_hint: "mail@christophriedl.at",
-      callback: (resp) => {
-        if (resp.error) { reject(new Error(resp.error)); return; }
-        accessToken = resp.access_token;
-        resolve();
-      }
-    });
-    nc.requestAccessToken({ prompt: "" });
-  });
+function scheduleTokenRefresh() {
+  setTimeout(() => { tokenClient.requestAccessToken({ prompt: "" }); }, 50 * 60 * 1000);
 }
 
 async function driveRequest(method, url, body) {
-  const doRequest = async () => {
-    const headers = { Authorization: "Bearer " + accessToken };
-    if (body) headers["Content-Type"] = "application/json";
-    return fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
-  };
-  let res = await doRequest();
-  if (res.status === 401) {
-    try { await refreshToken(); } catch(e) { throw new Error("Token-Erneuerung fehlgeschlagen"); }
-    res = await doRequest();
-  }
+  const headers = { Authorization: "Bearer " + accessToken };
+  if (body) headers["Content-Type"] = "application/json";
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
   if (!res.ok) throw new Error(await res.text());
   return res;
 }
 
 async function driveUpdate(fileId, content) {
-  const doRequest = async () => fetch(
+  const res = await fetch(
     "https://www.googleapis.com/upload/drive/v3/files/"+fileId+"?uploadType=media",
     { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(content) }
   );
-  let res = await doRequest();
-  if (res.status === 401) {
-    try { await refreshToken(); } catch(e) { throw new Error("Token-Erneuerung fehlgeschlagen"); }
-    res = await doRequest();
-  }
   if (!res.ok) throw new Error(await res.text());
   return res;
 }
