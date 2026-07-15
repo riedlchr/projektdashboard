@@ -726,7 +726,7 @@ function setFilter(f) { filter=f; render(); }
 function checkBullet(projectId, bulletIndex, liEl) {
   const box=liEl.querySelector(".cb-box"); const label=liEl.querySelector(".cb-label");
   box.classList.add("checking"); label.classList.add("checking"); liEl.style.pointerEvents="none";
-  setTimeout(() => { const p=projects.find(p=>p.id===projectId); if(p){ p.bullets.splice(bulletIndex,1); render(); scheduleSave(); } }, 500);
+  setTimeout(() => { const p=projects.find(p=>String(p.id)===String(projectId)); if(p){ p.bullets.splice(bulletIndex,1); render(); scheduleSave(); } }, 500);
 }
 
 function startEdit(id) {
@@ -734,7 +734,7 @@ function startEdit(id) {
   setTimeout(()=>{ const el=document.getElementById("edit-name"); if(el) el.focus(); },50);
 }
 function setEditStatus(status) {
-  const p=projects.find(p=>p.id===editingId); if(!p) return;
+  const p=projects.find(p=>String(p.id)===String(editingId)); if(!p) return;
   const ta=document.getElementById("edit-note");  if(ta) p.bullets=rawToBullets(ta.value);
   const ni=document.getElementById("edit-name");  if(ni) p.name=ni.value;
   const no=document.getElementById("edit-notiz"); if(no) p.note=no.value;
@@ -749,14 +749,14 @@ function saveEdit(id) {
   const due =document.getElementById("edit-due").value;
   const end =document.getElementById("edit-end").value;
   if(!name) return;
-  const p=projects.find(p=>p.id===id);
+  const p=projects.find(p=>String(p.id)===String(id));
   if(p){p.name=name; p.bullets=rawToBullets(raw); p.note=note; p.due=due; p.end=end;}
   editingId=null; render(); scheduleSave();
 }
 function cancelEdit(){editingId=null; render();}
 function deleteProject(id){
   if(!confirm("Projekt wirklich löschen?")) return;
-  projects=projects.filter(p=>p.id!==id); render(); scheduleSave();
+  projects=projects.filter(p=>String(p.id)!==String(id)); render(); scheduleSave();
 }
 
 function startAdd(){
