@@ -502,7 +502,7 @@ window.addEventListener("load", () => {
       localStorage.setItem("caritas_signed_in", "1");
       scheduleTokenRefresh();
       showApp();
-      await loadFromDrive();
+      loadAllData();
     }
   });
   if (localStorage.getItem("caritas_signed_in") === "1") {
@@ -522,13 +522,18 @@ function signOut() {
   document.getElementById("login-screen").style.display = "";
 }
 function showApp() {
+  // Only shows the UI – does NOT load data (needs token first)
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app").style.display = "";
+}
+async function loadAllData() {
+  // Called only after token is confirmed available
+  await loadFromDrive();
+  loadTodosFromDrive();
+  loadMeetingsFromDrive();
   loadAsanaTasks();
   loadTermine();
   loadEhrenGaeste();
-  loadTodosFromDrive();
-  loadMeetingsFromDrive();
 }
 
 // ── Sync ──────────────────────────────────────────────────────
