@@ -1303,10 +1303,11 @@ function confirmAddMeeting() {
 }
 
 // ── SKS-Leitungsdashboard (server-zu-server über eigenes Vercel-Backend) ──
+const SKS_AVATAR_BASE = "https://sks-leitungsdashboard.vercel.app/avatars/";
 const SKS_PEOPLE = {
-  christoph: { initials: "GS", name: "Christoph Riedl" },
-  tamara:    { initials: "TM", name: "Tamara Majnek" },
-  lukas:     { initials: "LS", name: "Lukas Steinwendtner" },
+  christoph: { initials: "GS", name: "Christoph Riedl", color: "#64748B", avatar: SKS_AVATAR_BASE+"christoph.jpg" },
+  tamara:    { initials: "TM", name: "Tamara Majnek",   color: "#3B82F6", avatar: SKS_AVATAR_BASE+"tamara.jpg" },
+  lukas:     { initials: "LS", name: "Lukas Steinwendtner", color: "#65A30D", avatar: SKS_AVATAR_BASE+"lukas.jpg" },
 };
 const SKS_STATUS = {
   green:  { label: "Im Plan",                      dot: "#22C55E" },
@@ -1314,6 +1315,8 @@ const SKS_STATUS = {
   red:    { label: "Kritisch / in Verzug",          dot: "#EF4444" },
 };
 let sksProjects = [], sksTeams = [], sksEditingId = null, sksEditDraft = null;
+let sksJustCompleted = new Set();
+const sksCompleteTimers = {};
 
 async function loadSksProjects(manual=false) {
   const statusEl = document.getElementById("sks-status");
@@ -1358,13 +1361,20 @@ function renderSksProjects() {
   el.innerHTML = sorted.map(p => sksEditingId === p.id ? renderSksEditCard(p) : renderSksCard(p)).join("");
 }
 
+function sksAvatarHtml(personId, size) {
+  const person = SKS_PEOPLE[personId];
+  if (!person) return "";
+  return `<span title="${esc(person.name)}" style="display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;background:${person.color};color:#fff;font-size:${Math.round(size*0.38)}px;font-weight:700;">
+    <img src="${person.avatar}" alt="${esc(person.name)}" style="width:100%;height:100%;object-fit:cover;object-position:top;" onerror="this.style.display='none'" />
+  </span>`;
+}
+
 function renderSksCard(p) {
   const s = SKS_STATUS[p.statusColor] || { label: p.statusColor, dot: "#9ca3af" };
-  const person = SKS_PEOPLE[p.responsiblePersonId];
-  const openTodos = (p.todos||[]).filter(t=>!t.done).length;
   const remindLbl = p.reminderDate ? `📅 Erinnerung: ${fmtDate(p.reminderDate)}` : null;
   const endLbl = p.completionDate ? `🏁 Ende: ${fmtDate(p.completionDate)}` : null;
-  const todosHtml = (p.todos||[]).length ? `<div class="sks-todos">${p.todos.map(t => {
+  const visibleTodos = (p.todos||[]).filter(t => !t.done || sksJustCompleted.has(t.id));
+  const todosHtml = visibleTodos.length ? `<div class="sks-todos">${visibleTodos.map(t => {
     const dl = t.dueDate ? asanaDueLabel(t.dueDate) : { label:null, cls:"" };
     return `<div class="sks-todo">
       <div class="sks-todo-cb${t.done?' done':''}" onclick="sksToggleTodo('${p.id}','${t.id}',${!!t.done})"><span class="sks-todo-cb-check">✓</span></div>
@@ -1375,21 +1385,25 @@ function renderSksCard(p) {
   }).join("")}</div>` : "";
   return `<div class="sks-card sc-${p.statusColor}">
     <div class="sks-card-header">
-      <div>
+      <div style="min-width:0;">
         <div class="sks-card-title">${esc(p.title)}</div>
         <div class="sks-card-meta">
           <span class="sks-team-tag" style="background:${sksTeamColor(p.teamId)};color:#fff;">${esc(sksTeamName(p.teamId))}</span>
-          ${person ? `<span title="${esc(person.name)}">${esc(person.initials)}</span>` : ""}
           <span class="sks-badge sc-${p.statusColor}">${s.label}</span>
         </div>
       </div>
-      <div class="sks-card-actions"><button onclick="sksStartEdit('${p.id}')">✏️</button></div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+        ${sksAvatarHtml(p.responsiblePersonId, 30)}
+        <div class="sks-card-actions"><button onclick="sksStartEdit('${p.id}')">✏️</button></div>
+      </div>
     </div>
     ${p.infoText ? `<div class="sks-info">${esc(p.infoText)}</div>` : ""}
     ${(remindLbl||endLbl) ? `<div class="sks-dates">${remindLbl?`<div>${remindLbl}</div>`:""}${endLbl?`<div>${endLbl}</div>`:""}</div>` : ""}
     ${todosHtml}
     <div class="sks-add-todo-row">
       <input type="text" id="sks-new-todo-${p.id}" placeholder="Neues To-do…" onkeydown="if(event.key==='Enter')sksAddTodo('${p.id}')" />
+      <input type="text" id="sks-new-todo-resp-${p.id}" placeholder="Wer" style="width:70px;flex:0 0 auto;" />
+      <input type="date" id="sks-new-todo-due-${p.id}" style="width:118px;flex:0 0 auto;" />
       <button onclick="sksAddTodo('${p.id}')">+</button>
     </div>
   </div>`;
@@ -1451,29 +1465,45 @@ async function sksSaveEdit(id) {
   renderSksProjects();
 }
 
+const SKS_HIDE_DELAY_MS = 2500;
+
 async function sksToggleTodo(projectId, todoId, currentDone) {
   const p = sksProjects.find(p => p.id === projectId);
   const t = p && p.todos.find(t => t.id === todoId);
-  if (t) { t.done = !currentDone; renderSksProjects(); }
+  if (t) { t.done = !currentDone; }
+  clearTimeout(sksCompleteTimers[todoId]);
+  if (!currentDone) {
+    sksJustCompleted.add(todoId);
+    sksCompleteTimers[todoId] = setTimeout(() => {
+      sksJustCompleted.delete(todoId);
+      renderSksProjects();
+    }, SKS_HIDE_DELAY_MS);
+  } else {
+    sksJustCompleted.delete(todoId);
+  }
+  renderSksProjects();
   try {
     await fetch(VERCEL + "/api/sks-projects", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "todo", projectId, todoId, done: !currentDone }),
     });
   } catch(e) {}
-  loadSksProjects();
 }
 
 async function sksAddTodo(projectId) {
   const input = document.getElementById("sks-new-todo-" + projectId);
+  const respInput = document.getElementById("sks-new-todo-resp-" + projectId);
+  const dueInput = document.getElementById("sks-new-todo-due-" + projectId);
   if (!input) return;
   const title = input.value.trim();
   if (!title) return;
-  input.value = "";
+  const responsibleFreeText = respInput ? respInput.value.trim() : "";
+  const dueDate = dueInput && dueInput.value ? dueInput.value : null;
+  input.value = ""; if (respInput) respInput.value = ""; if (dueInput) dueInput.value = "";
   try {
     await fetch(VERCEL + "/api/sks-projects", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, title, responsibleFreeText: "", dueDate: null }),
+      body: JSON.stringify({ projectId, title, responsibleFreeText, dueDate }),
     });
   } catch(e) {}
   loadSksProjects();
