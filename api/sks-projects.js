@@ -19,7 +19,7 @@ async function forward(path, options) {
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://riedlchr.github.io");
-  res.setHeader("Access-Control-Allow-Methods", "GET, PATCH, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, PATCH, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
@@ -36,16 +36,6 @@ export default async function handler(req, res) {
       else if (type === "todo" && projectId && todoId) path = `/api/projects/${projectId}/todos/${todoId}`;
       else return res.status(400).json({ error: "Ungültiger Patch-Typ" });
       const { status, data } = await forward(path, { method: "PATCH", body: JSON.stringify(fields) });
-      return res.status(status).json(data);
-    }
-
-    if (req.method === "POST") {
-      const { projectId, ...fields } = req.body || {};
-      if (!projectId) return res.status(400).json({ error: "projectId fehlt" });
-      const { status, data } = await forward(`/api/projects/${projectId}/todos`, {
-        method: "POST",
-        body: JSON.stringify(fields),
-      });
       return res.status(status).json(data);
     }
 

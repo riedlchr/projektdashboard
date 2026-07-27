@@ -202,10 +202,6 @@
   .sks-todo-del { background: none; border: none; cursor: pointer; color: #d1d5db; font-size: 11px; padding: 0 3px; opacity: 0; }
   .sks-todo:hover .sks-todo-del { opacity: 1; }
   .sks-todo-del:hover { color: #dc2626; }
-  .sks-add-todo-row { display: flex; gap: 6px; margin-top: 8px; }
-  .sks-add-todo-row input { flex: 1; font-size: 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 5px 9px; font-family: inherit; outline: none; }
-  .sks-add-todo-row button { background: none; border: none; cursor: pointer; color: #9ca3af; font-size: 13px; padding: 0 4px; }
-  .sks-add-todo-row button:hover { color: #111; }
   .sks-edit-form { display: flex; flex-direction: column; gap: 10px; }
   .sks-status-picker { display: flex; gap: 8px; flex-wrap: wrap; }
   .sks-status-btn { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid #e5e7eb; background: #f9fafb; color: #9ca3af; cursor: pointer; font-family: inherit; }
@@ -1400,12 +1396,6 @@ function renderSksCard(p) {
     ${p.infoText ? `<div class="sks-info">${esc(p.infoText)}</div>` : ""}
     ${(remindLbl||endLbl) ? `<div class="sks-dates">${remindLbl?`<div>${remindLbl}</div>`:""}${endLbl?`<div>${endLbl}</div>`:""}</div>` : ""}
     ${todosHtml}
-    <div class="sks-add-todo-row">
-      <input type="text" id="sks-new-todo-${p.id}" placeholder="Neues To-do…" onkeydown="if(event.key==='Enter')sksAddTodo('${p.id}')" />
-      <input type="text" id="sks-new-todo-resp-${p.id}" placeholder="Wer" style="width:70px;flex:0 0 auto;" />
-      <input type="date" id="sks-new-todo-due-${p.id}" style="width:118px;flex:0 0 auto;" />
-      <button onclick="sksAddTodo('${p.id}')">+</button>
-    </div>
   </div>`;
 }
 
@@ -1488,25 +1478,6 @@ async function sksToggleTodo(projectId, todoId, currentDone) {
       body: JSON.stringify({ type: "todo", projectId, todoId, done: !currentDone }),
     });
   } catch(e) {}
-}
-
-async function sksAddTodo(projectId) {
-  const input = document.getElementById("sks-new-todo-" + projectId);
-  const respInput = document.getElementById("sks-new-todo-resp-" + projectId);
-  const dueInput = document.getElementById("sks-new-todo-due-" + projectId);
-  if (!input) return;
-  const title = input.value.trim();
-  if (!title) return;
-  const responsibleFreeText = respInput ? respInput.value.trim() : "";
-  const dueDate = dueInput && dueInput.value ? dueInput.value : null;
-  input.value = ""; if (respInput) respInput.value = ""; if (dueInput) dueInput.value = "";
-  try {
-    await fetch(VERCEL + "/api/sks-projects", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, title, responsibleFreeText, dueDate }),
-    });
-  } catch(e) {}
-  loadSksProjects();
 }
 
 async function sksDeleteTodo(projectId, todoId) {
