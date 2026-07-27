@@ -368,23 +368,6 @@
 
     <hr class="section-divider">
 
-    <!-- SKS-Leitungsdashboard -->
-    <div class="asana-section">
-      <div class="asana-section-header">
-        <div class="asana-section-left">
-          <div class="asana-section-title">SKS-Leitungsdashboard</div>
-          <button class="btn-refresh" id="refresh-sks" onclick="loadSksProjects(true)">↻</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="asana-status" id="sks-status">Lädt…</div>
-          <a href="https://sks-leitungsdashboard.vercel.app/dashboard" target="_blank" style="font-size:11px;font-weight:600;color:#9ca3af;text-decoration:none;border:1.5px solid #e5e7eb;padding:3px 8px;border-radius:6px;background:#fff;">↗ Vollansicht</a>
-        </div>
-      </div>
-      <div class="sks-projects" id="sks-projects"></div>
-    </div>
-
-    <hr class="section-divider">
-
     <!-- Quick Todo -->
     <div class="asana-section">
       <div class="asana-section-header">
@@ -412,6 +395,23 @@
       <div class="meeting-boards" id="meeting-boards"></div>
       <button class="add-btn" onclick="startAddMeeting()">+ Person / Gremium hinzufügen</button>
       <div id="meeting-add-area"></div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- SKS-Leitungsdashboard -->
+    <div class="asana-section">
+      <div class="asana-section-header">
+        <div class="asana-section-left">
+          <div class="asana-section-title">SKS-Leitungsdashboard</div>
+          <button class="btn-refresh" id="refresh-sks" onclick="loadSksProjects(true)">↻</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="asana-status" id="sks-status">Lädt…</div>
+          <a href="https://sks-leitungsdashboard.vercel.app/dashboard" target="_blank" style="font-size:11px;font-weight:600;color:#9ca3af;text-decoration:none;border:1.5px solid #e5e7eb;padding:3px 8px;border-radius:6px;background:#fff;">↗ Vollansicht</a>
+        </div>
+      </div>
+      <div class="sks-projects" id="sks-projects"></div>
     </div>
 
     <hr class="section-divider">
