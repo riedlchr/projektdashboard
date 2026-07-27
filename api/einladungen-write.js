@@ -5,7 +5,9 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  if (req.headers["x-write-secret"] !== "caritas-einladungen-2026") {
+  const WRITE_SECRET = process.env.EINLADUNGEN_WRITE_SECRET;
+  if (!WRITE_SECRET) return res.status(500).json({ error: "EINLADUNGEN_WRITE_SECRET not set" });
+  if (req.headers["x-write-secret"] !== WRITE_SECRET) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
