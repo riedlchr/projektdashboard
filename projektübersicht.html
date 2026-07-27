@@ -1384,7 +1384,7 @@ function renderSksCard(p) {
       <div style="min-width:0;">
         <div class="sks-card-title">${esc(p.title)}</div>
         <div class="sks-card-meta">
-          <span class="sks-team-tag" style="background:${sksTeamColor(p.teamId)};color:#fff;">${esc(sksTeamName(p.teamId))}</span>
+          ${(p.teamIds||[]).map(id => `<span class="sks-team-tag" style="background:${sksTeamColor(id)};color:#fff;">${esc(sksTeamName(id))}</span>`).join("")}
           <span class="sks-badge sc-${p.statusColor}">${s.label}</span>
         </div>
       </div>
