@@ -169,6 +169,50 @@
   .asana-task-due.due-soon { color: #d97706; font-weight: 600; }
   .asana-empty { font-size: 13px; color: #d1d5db; padding: 10px 0; }
 
+  /* SKS-Leitungsdashboard */
+  .sks-projects { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sks-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; flex: 1 1 280px; min-width: 240px; max-width: 380px; border-left: 4px solid #d1d5db; }
+  .sks-card.sc-green  { border-left-color: #22C55E; }
+  .sks-card.sc-orange { border-left-color: #F97316; }
+  .sks-card.sc-red    { border-left-color: #EF4444; }
+  .sks-card.editing { flex: 1 1 100%; max-width: 100%; }
+  .sks-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .sks-card-title { font-size: 14px; font-weight: 700; color: #111; line-height: 1.3; }
+  .sks-card-meta { font-size: 11px; color: #9ca3af; margin-top: 3px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .sks-team-tag { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; }
+  .sks-badge { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 20px; padding: 2px 8px; }
+  .sks-badge.sc-green  { color: #15803d; background: #F0FDF4; border: 1px solid #bbf7d0; }
+  .sks-badge.sc-orange { color: #c2410c; background: #FFF7ED; border: 1px solid #fed7aa; }
+  .sks-badge.sc-red    { color: #dc2626; background: #FEF2F2; border: 1px solid #fecaca; }
+  .sks-card-actions button { background: none; border: none; cursor: pointer; font-size: 13px; padding: 3px 5px; border-radius: 6px; opacity: 0.4; }
+  .sks-card-actions button:hover { opacity: 1; }
+  .sks-info { font-size: 12px; color: #6b7280; margin-top: 6px; line-height: 1.5; white-space: pre-wrap; }
+  .sks-dates { font-size: 11px; color: #9ca3af; margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+  .sks-todos { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+  .sks-todo { font-size: 12px; color: #374151; display: flex; gap: 6px; align-items: flex-start; cursor: pointer; border-radius: 6px; padding: 2px 4px; }
+  .sks-todo:hover { background: rgba(0,0,0,0.04); }
+  .sks-todo-cb { width: 12px; height: 12px; border: 1.5px solid #d1d5db; border-radius: 3px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; }
+  .sks-todo-cb.done { border-color: #16a34a; background: #16a34a; }
+  .sks-todo-cb-check { display: none; color: #fff; font-size: 8px; }
+  .sks-todo-cb.done .sks-todo-cb-check { display: block; }
+  .sks-todo-label { flex: 1; }
+  .sks-todo-label.done { text-decoration: line-through; color: #9ca3af; }
+  .sks-todo-due { font-size: 10px; color: #9ca3af; }
+  .sks-todo-due.overdue { color: #dc2626; font-weight: 600; }
+  .sks-todo-del { background: none; border: none; cursor: pointer; color: #d1d5db; font-size: 11px; padding: 0 3px; opacity: 0; }
+  .sks-todo:hover .sks-todo-del { opacity: 1; }
+  .sks-todo-del:hover { color: #dc2626; }
+  .sks-add-todo-row { display: flex; gap: 6px; margin-top: 8px; }
+  .sks-add-todo-row input { flex: 1; font-size: 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 5px 9px; font-family: inherit; outline: none; }
+  .sks-add-todo-row button { background: none; border: none; cursor: pointer; color: #9ca3af; font-size: 13px; padding: 0 4px; }
+  .sks-add-todo-row button:hover { color: #111; }
+  .sks-edit-form { display: flex; flex-direction: column; gap: 10px; }
+  .sks-status-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sks-status-btn { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid #e5e7eb; background: #f9fafb; color: #9ca3af; cursor: pointer; font-family: inherit; }
+  .sks-status-btn.sel-green  { border-color: #22C55E; background: #F0FDF4; color: #15803d; }
+  .sks-status-btn.sel-orange { border-color: #F97316; background: #FFF7ED; color: #c2410c; }
+  .sks-status-btn.sel-red    { border-color: #EF4444; background: #FEF2F2; color: #dc2626; }
+
   /* Termine list */
   .termine-list { display: flex; flex-direction: column; gap: 5px; }
   .termine-item { display: flex; align-items: flex-start; gap: 12px; padding: 7px 12px; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; text-decoration: none; transition: box-shadow 0.15s, border-color 0.15s; }
@@ -324,6 +368,23 @@
         <div class="asana-status" id="asana-status">Lädt…</div>
       </div>
       <div class="asana-tasks" id="asana-tasks"></div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- SKS-Leitungsdashboard -->
+    <div class="asana-section">
+      <div class="asana-section-header">
+        <div class="asana-section-left">
+          <div class="asana-section-title">SKS-Leitungsdashboard</div>
+          <button class="btn-refresh" id="refresh-sks" onclick="loadSksProjects(true)">↻</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="asana-status" id="sks-status">Lädt…</div>
+          <a href="https://sks-leitungsdashboard.vercel.app/dashboard" target="_blank" style="font-size:11px;font-weight:600;color:#9ca3af;text-decoration:none;border:1.5px solid #e5e7eb;padding:3px 8px;border-radius:6px;background:#fff;">↗ Vollansicht</a>
+        </div>
+      </div>
+      <div class="sks-projects" id="sks-projects"></div>
     </div>
 
     <hr class="section-divider">
@@ -534,6 +595,7 @@ async function loadAllData() {
   loadAsanaTasks();
   loadTermine();
   loadEhrenGaeste();
+  loadSksProjects();
 }
 
 // ── Sync ──────────────────────────────────────────────────────
@@ -1238,6 +1300,190 @@ function confirmAddMeeting() {
   addingMeeting = false;
   renderMeetings();
   scheduleMeetingSave();
+}
+
+// ── SKS-Leitungsdashboard (server-zu-server über eigenes Vercel-Backend) ──
+const SKS_PEOPLE = {
+  christoph: { initials: "GS", name: "Christoph Riedl" },
+  tamara:    { initials: "TM", name: "Tamara Majnek" },
+  lukas:     { initials: "LS", name: "Lukas Steinwendtner" },
+};
+const SKS_STATUS = {
+  green:  { label: "Im Plan",                      dot: "#22C55E" },
+  orange: { label: "Handlung Leitung notwendig",    dot: "#F97316" },
+  red:    { label: "Kritisch / in Verzug",          dot: "#EF4444" },
+};
+let sksProjects = [], sksTeams = [], sksEditingId = null, sksEditDraft = null;
+
+async function loadSksProjects(manual=false) {
+  const statusEl = document.getElementById("sks-status");
+  const listEl   = document.getElementById("sks-projects");
+  const btn      = document.getElementById("refresh-sks");
+  if (!statusEl || !listEl) return;
+  if (manual && btn) btn.classList.add("spinning");
+  statusEl.textContent = "Lädt…";
+  try {
+    const res = await fetch(VERCEL + "/api/sks-projects");
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    sksProjects = data.projects || [];
+    sksTeams = data.teams || [];
+    statusEl.textContent = sksProjects.length + " Projekte";
+    renderSksProjects();
+  } catch(e) {
+    statusEl.textContent = "Fehler";
+    listEl.innerHTML = `<div class="asana-empty">Konnte nicht geladen werden.</div>`;
+  }
+  if (manual && btn) setTimeout(()=>btn.classList.remove("spinning"),600);
+}
+
+function sksTeamName(teamId) {
+  const t = sksTeams.find(t => t.id === teamId);
+  return t ? t.name : teamId;
+}
+function sksTeamColor(teamId) {
+  const t = sksTeams.find(t => t.id === teamId);
+  return t ? t.colorHex : "#9ca3af";
+}
+
+function renderSksProjects() {
+  const el = document.getElementById("sks-projects");
+  if (!el) return;
+  if (sksProjects.length === 0) { el.innerHTML = `<div class="empty">Keine Projekte.</div>`; return; }
+  const sorted = [...sksProjects].sort((a,b) => {
+    const order = { red: 0, orange: 1, green: 2 };
+    const d = (order[a.statusColor]??3) - (order[b.statusColor]??3);
+    return d !== 0 ? d : a.title.localeCompare(b.title, "de");
+  });
+  el.innerHTML = sorted.map(p => sksEditingId === p.id ? renderSksEditCard(p) : renderSksCard(p)).join("");
+}
+
+function renderSksCard(p) {
+  const s = SKS_STATUS[p.statusColor] || { label: p.statusColor, dot: "#9ca3af" };
+  const person = SKS_PEOPLE[p.responsiblePersonId];
+  const openTodos = (p.todos||[]).filter(t=>!t.done).length;
+  const remindLbl = p.reminderDate ? `📅 Erinnerung: ${fmtDate(p.reminderDate)}` : null;
+  const endLbl = p.completionDate ? `🏁 Ende: ${fmtDate(p.completionDate)}` : null;
+  const todosHtml = (p.todos||[]).length ? `<div class="sks-todos">${p.todos.map(t => {
+    const dl = t.dueDate ? asanaDueLabel(t.dueDate) : { label:null, cls:"" };
+    return `<div class="sks-todo">
+      <div class="sks-todo-cb${t.done?' done':''}" onclick="sksToggleTodo('${p.id}','${t.id}',${!!t.done})"><span class="sks-todo-cb-check">✓</span></div>
+      <span class="sks-todo-label${t.done?' done':''}">${esc(t.title)}${t.responsibleFreeText?` <span style="color:#d1d5db">· ${esc(t.responsibleFreeText)}</span>`:""}</span>
+      ${dl.label && !t.done ? `<span class="sks-todo-due ${dl.cls}">${dl.label}</span>` : ""}
+      <button class="sks-todo-del" onclick="sksDeleteTodo('${p.id}','${t.id}')" title="Löschen">✕</button>
+    </div>`;
+  }).join("")}</div>` : "";
+  return `<div class="sks-card sc-${p.statusColor}">
+    <div class="sks-card-header">
+      <div>
+        <div class="sks-card-title">${esc(p.title)}</div>
+        <div class="sks-card-meta">
+          <span class="sks-team-tag" style="background:${sksTeamColor(p.teamId)};color:#fff;">${esc(sksTeamName(p.teamId))}</span>
+          ${person ? `<span title="${esc(person.name)}">${esc(person.initials)}</span>` : ""}
+          <span class="sks-badge sc-${p.statusColor}">${s.label}</span>
+        </div>
+      </div>
+      <div class="sks-card-actions"><button onclick="sksStartEdit('${p.id}')">✏️</button></div>
+    </div>
+    ${p.infoText ? `<div class="sks-info">${esc(p.infoText)}</div>` : ""}
+    ${(remindLbl||endLbl) ? `<div class="sks-dates">${remindLbl?`<div>${remindLbl}</div>`:""}${endLbl?`<div>${endLbl}</div>`:""}</div>` : ""}
+    ${todosHtml}
+    <div class="sks-add-todo-row">
+      <input type="text" id="sks-new-todo-${p.id}" placeholder="Neues To-do…" onkeydown="if(event.key==='Enter')sksAddTodo('${p.id}')" />
+      <button onclick="sksAddTodo('${p.id}')">+</button>
+    </div>
+  </div>`;
+}
+
+function renderSksEditCard(p) {
+  const d = sksEditDraft;
+  return `<div class="sks-card editing sc-${d.statusColor}">
+    <div class="sks-edit-form">
+      <div class="sks-status-picker">${Object.entries(SKS_STATUS).map(([key,val]) => `<button class="sks-status-btn ${d.statusColor===key?'sel-'+key:''}" onclick="sksSetEditStatus('${key}')"><span class="status-dot-sm" style="background:${val.dot}"></span>${val.label}</button>`).join("")}</div>
+      <div>
+        <div class="edit-due-label">📝 Infotext</div>
+        <textarea class="edit-textarea" id="sks-edit-info" oninput="autoGrow(this)">${esc(d.infoText||"")}</textarea>
+      </div>
+      ${dateField("sks-edit-remind","Erinnerungsdatum","📅",d.reminderDate)}
+      ${dateField("sks-edit-end","Geplantes Ende","🏁",d.completionDate)}
+      <div class="edit-actions"><button class="btn-cancel" onclick="sksCancelEdit()">Abbrechen</button><button class="btn-save" onclick="sksSaveEdit('${p.id}')">Speichern</button></div>
+    </div>
+  </div>`;
+}
+
+function sksStartEdit(id) {
+  const p = sksProjects.find(p => p.id === id);
+  if (!p) return;
+  sksEditingId = id;
+  sksEditDraft = { statusColor: p.statusColor, infoText: p.infoText, reminderDate: p.reminderDate, completionDate: p.completionDate };
+  renderSksProjects();
+  document.querySelectorAll("#sks-projects .edit-textarea").forEach(ta=>autoGrow(ta));
+}
+function sksSetEditStatus(status) {
+  const info = document.getElementById("sks-edit-info");
+  if (info) sksEditDraft.infoText = info.value;
+  const rd = document.getElementById("sks-edit-remind");
+  if (rd) sksEditDraft.reminderDate = rd.value;
+  const ed = document.getElementById("sks-edit-end");
+  if (ed) sksEditDraft.completionDate = ed.value;
+  sksEditDraft.statusColor = status;
+  renderSksProjects();
+  document.querySelectorAll("#sks-projects .edit-textarea").forEach(ta=>autoGrow(ta));
+}
+function sksCancelEdit() { sksEditingId = null; sksEditDraft = null; renderSksProjects(); }
+
+async function sksSaveEdit(id) {
+  const info = document.getElementById("sks-edit-info").value;
+  const remind = document.getElementById("sks-edit-remind").value || null;
+  const end = document.getElementById("sks-edit-end").value || null;
+  const statusColor = sksEditDraft.statusColor;
+  try {
+    const res = await fetch(VERCEL + "/api/sks-projects", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "project", projectId: id, infoText: info, reminderDate: remind, completionDate: end, statusColor }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const updated = await res.json();
+    const idx = sksProjects.findIndex(p => p.id === id);
+    if (idx !== -1) sksProjects[idx] = updated;
+  } catch(e) { alert("Speichern fehlgeschlagen."); }
+  sksEditingId = null; sksEditDraft = null;
+  renderSksProjects();
+}
+
+async function sksToggleTodo(projectId, todoId, currentDone) {
+  const p = sksProjects.find(p => p.id === projectId);
+  const t = p && p.todos.find(t => t.id === todoId);
+  if (t) { t.done = !currentDone; renderSksProjects(); }
+  try {
+    await fetch(VERCEL + "/api/sks-projects", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "todo", projectId, todoId, done: !currentDone }),
+    });
+  } catch(e) {}
+  loadSksProjects();
+}
+
+async function sksAddTodo(projectId) {
+  const input = document.getElementById("sks-new-todo-" + projectId);
+  if (!input) return;
+  const title = input.value.trim();
+  if (!title) return;
+  input.value = "";
+  try {
+    await fetch(VERCEL + "/api/sks-projects", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, title, responsibleFreeText: "", dueDate: null }),
+    });
+  } catch(e) {}
+  loadSksProjects();
+}
+
+async function sksDeleteTodo(projectId, todoId) {
+  try {
+    await fetch(VERCEL + "/api/sks-projects?projectId=" + encodeURIComponent(projectId) + "&todoId=" + encodeURIComponent(todoId), { method: "DELETE" });
+  } catch(e) {}
+  loadSksProjects();
 }
 </script>
 </body>
