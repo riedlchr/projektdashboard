@@ -1352,7 +1352,7 @@ function renderSksProjects() {
   const sorted = [...sksProjects].sort((a,b) => {
     const order = { red: 0, orange: 1, green: 2 };
     const d = (order[a.statusColor]??3) - (order[b.statusColor]??3);
-    return d !== 0 ? d : a.title.localeCompare(b.title, "de");
+    return d !== 0 ? d : (b.updatedAt||"").localeCompare(a.updatedAt||"");
   });
   el.innerHTML = sorted.map(p => sksEditingId === p.id ? renderSksEditCard(p) : renderSksCard(p)).join("");
 }
