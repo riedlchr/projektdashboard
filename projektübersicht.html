@@ -1305,6 +1305,8 @@ const SKS_PEOPLE = {
   tamara:    { initials: "TM", name: "Tamara Majnek",   color: "#3B82F6", avatar: SKS_AVATAR_BASE+"tamara.jpg" },
   lukas:     { initials: "LS", name: "Lukas Steinwendtner", color: "#65A30D", avatar: SKS_AVATAR_BASE+"lukas.jpg" },
 };
+// Only Christoph's own dashboard — show only projects where he's a responsible person.
+const SKS_CURRENT_PERSON_ID = "christoph";
 const SKS_STATUS = {
   green:  { label: "Im Plan",                      dot: "#22C55E" },
   orange: { label: "Handlung Leitung notwendig",    dot: "#F97316" },
@@ -1325,7 +1327,7 @@ async function loadSksProjects(manual=false) {
     const res = await fetch(VERCEL + "/api/sks-projects");
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    sksProjects = data.projects || [];
+    sksProjects = (data.projects || []).filter(p => (p.responsiblePersonIds || []).includes(SKS_CURRENT_PERSON_ID));
     sksTeams = data.teams || [];
     statusEl.textContent = sksProjects.length + " Projekte";
     renderSksProjects();
@@ -1389,7 +1391,7 @@ function renderSksCard(p) {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-        ${sksAvatarHtml(p.responsiblePersonId, 30)}
+        ${(p.responsiblePersonIds||[]).map(id => sksAvatarHtml(id, 30)).join("")}
         <div class="sks-card-actions"><button onclick="sksStartEdit('${p.id}')">✏️</button></div>
       </div>
     </div>
