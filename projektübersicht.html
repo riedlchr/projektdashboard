@@ -1313,8 +1313,6 @@ const SKS_STATUS = {
   red:    { label: "Kritisch / in Verzug",          dot: "#EF4444" },
 };
 let sksProjects = [], sksTeams = [], sksEditingId = null, sksEditDraft = null;
-let sksJustCompleted = new Set();
-const sksCompleteTimers = {};
 
 async function loadSksProjects(manual=false) {
   const statusEl = document.getElementById("sks-status");
@@ -1369,18 +1367,7 @@ function sksAvatarHtml(personId, size) {
 
 function renderSksCard(p) {
   const s = SKS_STATUS[p.statusColor] || { label: p.statusColor, dot: "#9ca3af" };
-  const remindLbl = p.reminderDate ? `📅 Erinnerung: ${fmtDate(p.reminderDate)}` : null;
-  const endLbl = p.completionDate ? `🏁 Ende: ${fmtDate(p.completionDate)}` : null;
-  const visibleTodos = (p.todos||[]).filter(t => !t.done || sksJustCompleted.has(t.id));
-  const todosHtml = visibleTodos.length ? `<div class="sks-todos">${visibleTodos.map(t => {
-    const dl = t.dueDate ? asanaDueLabel(t.dueDate) : { label:null, cls:"" };
-    return `<div class="sks-todo">
-      <div class="sks-todo-cb${t.done?' done':''}" onclick="sksToggleTodo('${p.id}','${t.id}',${!!t.done})"><span class="sks-todo-cb-check">✓</span></div>
-      <span class="sks-todo-label${t.done?' done':''}">${esc(t.title)}${t.responsibleFreeText?` <span style="color:#d1d5db">· ${esc(t.responsibleFreeText)}</span>`:""}</span>
-      ${dl.label && !t.done ? `<span class="sks-todo-due ${dl.cls}">${dl.label}</span>` : ""}
-      <button class="sks-todo-del" onclick="sksDeleteTodo('${p.id}','${t.id}')" title="Löschen">✕</button>
-    </div>`;
-  }).join("")}</div>` : "";
+  // Compact view: title, team, status, photo only — no info text, dates or todos.
   return `<div class="sks-card sc-${p.statusColor}">
     <div class="sks-card-header">
       <div style="min-width:0;">
@@ -1395,9 +1382,6 @@ function renderSksCard(p) {
         <div class="sks-card-actions"><button onclick="sksStartEdit('${p.id}')">✏️</button></div>
       </div>
     </div>
-    ${p.infoText ? `<div class="sks-info">${esc(p.infoText)}</div>` : ""}
-    ${(remindLbl||endLbl) ? `<div class="sks-dates">${remindLbl?`<div>${remindLbl}</div>`:""}${endLbl?`<div>${endLbl}</div>`:""}</div>` : ""}
-    ${todosHtml}
   </div>`;
 }
 
@@ -1457,37 +1441,6 @@ async function sksSaveEdit(id) {
   renderSksProjects();
 }
 
-const SKS_HIDE_DELAY_MS = 2500;
-
-async function sksToggleTodo(projectId, todoId, currentDone) {
-  const p = sksProjects.find(p => p.id === projectId);
-  const t = p && p.todos.find(t => t.id === todoId);
-  if (t) { t.done = !currentDone; }
-  clearTimeout(sksCompleteTimers[todoId]);
-  if (!currentDone) {
-    sksJustCompleted.add(todoId);
-    sksCompleteTimers[todoId] = setTimeout(() => {
-      sksJustCompleted.delete(todoId);
-      renderSksProjects();
-    }, SKS_HIDE_DELAY_MS);
-  } else {
-    sksJustCompleted.delete(todoId);
-  }
-  renderSksProjects();
-  try {
-    await fetch(VERCEL + "/api/sks-projects", {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "todo", projectId, todoId, done: !currentDone }),
-    });
-  } catch(e) {}
-}
-
-async function sksDeleteTodo(projectId, todoId) {
-  try {
-    await fetch(VERCEL + "/api/sks-projects?projectId=" + encodeURIComponent(projectId) + "&todoId=" + encodeURIComponent(todoId), { method: "DELETE" });
-  } catch(e) {}
-  loadSksProjects();
-}
 </script>
 </body>
 </html>
