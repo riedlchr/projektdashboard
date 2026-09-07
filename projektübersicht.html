@@ -170,6 +170,11 @@
   .asana-empty { font-size: 13px; color: #d1d5db; padding: 10px 0; }
 
   /* SKS-Leitungsdashboard */
+  .sks-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .sks-filter-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sks-filter-sep { width: 1px; height: 18px; background: #e5e7eb; margin: 0 2px; }
+  .sks-filter-btn { padding: 4px 11px; border-radius: 20px; font-size: 11.5px; font-weight: 600; border: 2px solid transparent; cursor: pointer; background: #efefed; color: #9ca3af; transition: all 0.15s; font-family: inherit; }
+  .sks-filter-btn.active { border-color: #111; background: #f3f4f6; color: #111; }
   .sks-projects { display: flex; flex-wrap: wrap; gap: 10px; }
   .sks-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 14px 16px; flex: 1 1 280px; min-width: 240px; max-width: 380px; border-left: 4px solid #d1d5db; }
   .sks-card.sc-green  { border-left-color: #22C55E; }
@@ -411,6 +416,7 @@
           <a href="https://sks-leitungsdashboard.vercel.app/dashboard" target="_blank" style="font-size:11px;font-weight:600;color:#9ca3af;text-decoration:none;border:1.5px solid #e5e7eb;padding:3px 8px;border-radius:6px;background:#fff;">↗ Vollansicht</a>
         </div>
       </div>
+      <div class="sks-filters" id="sks-filters"></div>
       <div class="sks-projects" id="sks-projects"></div>
     </div>
 
@@ -1305,14 +1311,17 @@ const SKS_PEOPLE = {
   tamara:    { initials: "TM", name: "Tamara Majnek",   color: "#3B82F6", avatar: SKS_AVATAR_BASE+"tamara.jpg" },
   lukas:     { initials: "LS", name: "Lukas Steinwendtner", color: "#65A30D", avatar: SKS_AVATAR_BASE+"lukas.jpg" },
 };
-// Only Christoph's own dashboard — show only projects where he's a responsible person.
 const SKS_CURRENT_PERSON_ID = "christoph";
 const SKS_STATUS = {
   green:  { label: "Im Plan",                      dot: "#22C55E" },
   orange: { label: "Handlung Leitung notwendig",    dot: "#F97316" },
   red:    { label: "Kritisch / in Verzug",          dot: "#EF4444" },
 };
-let sksProjects = [], sksTeams = [], sksEditingId = null, sksEditDraft = null;
+let sksAllProjects = [], sksProjects = [], sksTeams = [], sksEditingId = null, sksEditDraft = null;
+// Which person/team to show is Christoph's own choice, remembered across visits.
+// Defaults to "just me" so the view stays as before until he changes it.
+let sksFilterPerson = localStorage.getItem("sksFilterPerson") || SKS_CURRENT_PERSON_ID;
+let sksFilterTeam = localStorage.getItem("sksFilterTeam") || "all";
 
 async function loadSksProjects(manual=false) {
   const statusEl = document.getElementById("sks-status");
@@ -1325,15 +1334,51 @@ async function loadSksProjects(manual=false) {
     const res = await fetch(VERCEL + "/api/sks-projects");
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    sksProjects = (data.projects || []).filter(p => (p.responsiblePersonIds || []).includes(SKS_CURRENT_PERSON_ID));
+    sksAllProjects = data.projects || [];
     sksTeams = data.teams || [];
-    statusEl.textContent = sksProjects.length + " Projekte";
-    renderSksProjects();
+    sksApplyFilters();
   } catch(e) {
     statusEl.textContent = "Fehler";
     listEl.innerHTML = `<div class="asana-empty">Konnte nicht geladen werden.</div>`;
   }
   if (manual && btn) setTimeout(()=>btn.classList.remove("spinning"),600);
+}
+
+function sksApplyFilters() {
+  sksProjects = sksAllProjects.filter(p => {
+    const okPerson = sksFilterPerson === "all" || (p.responsiblePersonIds||[]).includes(sksFilterPerson);
+    const okTeam = sksFilterTeam === "all" || (p.teamIds||[]).includes(sksFilterTeam);
+    return okPerson && okTeam;
+  });
+  const statusEl = document.getElementById("sks-status");
+  if (statusEl) {
+    statusEl.textContent = sksProjects.length === sksAllProjects.length
+      ? sksAllProjects.length + " Projekte"
+      : sksProjects.length + " von " + sksAllProjects.length + " Projekten";
+  }
+  renderSksFilters();
+  renderSksProjects();
+}
+
+function setSksFilterPerson(id) {
+  sksFilterPerson = id;
+  localStorage.setItem("sksFilterPerson", id);
+  sksApplyFilters();
+}
+function setSksFilterTeam(id) {
+  sksFilterTeam = id;
+  localStorage.setItem("sksFilterTeam", id);
+  sksApplyFilters();
+}
+
+function renderSksFilters() {
+  const el = document.getElementById("sks-filters");
+  if (!el) return;
+  const personBtns = [{ id:"all", label:"Alle" }, ...Object.entries(SKS_PEOPLE).map(([id,p]) => ({ id, label:p.initials }))]
+    .map(b => `<button class="sks-filter-btn ${sksFilterPerson===b.id?"active":""}" onclick="setSksFilterPerson('${b.id}')" title="${b.id==='all'?'Alle Personen':SKS_PEOPLE[b.id].name}">${esc(b.label)}</button>`).join("");
+  const teamBtns = [{ id:"all", label:"Alle Teams" }, ...sksTeams.map(t => ({ id:t.id, label:t.name }))]
+    .map(b => `<button class="sks-filter-btn ${sksFilterTeam===b.id?"active":""}" onclick="setSksFilterTeam('${b.id}')">${esc(b.label)}</button>`).join("");
+  el.innerHTML = `<div class="sks-filter-group">${personBtns}</div><div class="sks-filter-sep"></div><div class="sks-filter-group">${teamBtns}</div>`;
 }
 
 function sksTeamName(teamId) {
@@ -1402,7 +1447,7 @@ function renderSksEditCard(p) {
 }
 
 function sksStartEdit(id) {
-  const p = sksProjects.find(p => p.id === id);
+  const p = sksAllProjects.find(p => p.id === id);
   if (!p) return;
   sksEditingId = id;
   sksEditDraft = { statusColor: p.statusColor, infoText: p.infoText, reminderDate: p.reminderDate, completionDate: p.completionDate };
@@ -1434,11 +1479,11 @@ async function sksSaveEdit(id) {
     });
     if (!res.ok) throw new Error(await res.text());
     const updated = await res.json();
-    const idx = sksProjects.findIndex(p => p.id === id);
-    if (idx !== -1) sksProjects[idx] = updated;
+    const idx = sksAllProjects.findIndex(p => p.id === id);
+    if (idx !== -1) sksAllProjects[idx] = updated;
   } catch(e) { alert("Speichern fehlgeschlagen."); }
   sksEditingId = null; sksEditDraft = null;
-  renderSksProjects();
+  sksApplyFilters();
 }
 
 </script>
