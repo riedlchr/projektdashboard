@@ -5,9 +5,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const WRITE_SECRET = process.env.EINLADUNGEN_WRITE_SECRET;
-  if (!WRITE_SECRET) return res.status(500).json({ error: "EINLADUNGEN_WRITE_SECRET not set" });
-  if (req.headers["x-write-secret"] !== WRITE_SECRET) {
+  if (req.headers["x-write-secret"] !== "caritas-einladungen-2026") {
     return res.status(403).json({ error: "Forbidden" });
   }
 
@@ -15,21 +13,16 @@ export default async function handler(req, res) {
   const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
   if (!KV_URL || !KV_TOKEN) {
-    return res.status(500).json({ error: "KV not configured", url: !!KV_URL, token: !!KV_TOKEN });
+    return res.status(500).json({ error: "KV not configured" });
   }
 
   try {
     const bodyStr = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-
     const r = await fetch(KV_URL + "/pipeline", {
       method: "POST",
-      headers: {
-        Authorization: "Bearer " + KV_TOKEN,
-        "Content-Type": "application/json"
-      },
+      headers: { Authorization: "Bearer " + KV_TOKEN, "Content-Type": "application/json" },
       body: JSON.stringify([["SET", "einladungen", bodyStr]])
     });
-
     const result = await r.json();
     return res.status(200).json({ ok: true, result });
   } catch(e) {
