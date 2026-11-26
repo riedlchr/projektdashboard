@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ehrengäste – Datenwiederherstellung</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f0f4f8; font-family: Helvetica, Arial, sans-serif; min-height: 100vh; color: #111; padding: 40px 20px; }
+  .box { max-width: 700px; margin: 0 auto; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  h1 { font-size: 18px; margin-bottom: 6px; }
+  p { font-size: 13px; color: #6b7280; margin-bottom: 18px; line-height: 1.5; }
+  .btn { padding: 10px 22px; border-radius: 8px; border: none; background: #b91c1c; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; font-family: inherit; }
+  .btn:hover { background: #991b1b; }
+  .status { font-size: 13px; color: #6b7280; margin-top: 14px; }
+  .file-block { margin-top: 20px; border-top: 1px solid #f3f4f6; padding-top: 16px; }
+  .file-block h3 { font-size: 14px; margin-bottom: 8px; }
+  .file-meta { font-size: 11px; color: #9ca3af; margin-bottom: 10px; }
+  .event-item { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; }
+  .event-item .title { font-weight: 700; }
+  .event-item .guests { margin-top: 4px; color: #374151; font-size: 12px; }
+  pre { background: #f3f4f6; border-radius: 8px; padding: 12px; font-size: 11px; overflow-x: auto; margin-top: 10px; white-space: pre-wrap; word-break: break-word; }
+  .err { color: #b91c1c; font-size: 13px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🔎 Ehrengäste – Datenwiederherstellung</h1>
+  <p>Diese Seite meldet dich kurz mit deinem Google-Konto an (dem, mit dem du früher die Ehrengäste-Seite benutzt hast) und zeigt dir, was dort in deinem persönlichen Google-Drive-Speicher (App-Datenordner) noch gespeichert ist. Es wird nichts verändert oder gelöscht.</p>
+  <button class="btn" id="btn-signin" onclick="signIn()">🔐 Mit Google anmelden</button>
+  <div class="status" id="status"></div>
+  <div id="result"></div>
+</div>
+
+<script>
+const CLIENT_ID = "907159149164-mmpm2dntmhad9qg304dadmkgid5skacb.apps.googleusercontent.com";
+const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const STATUS_LABELS = {
+  eingeladen:  "Eingeladen",
+  zugesagt:    "Zugesagt",
+  abgesagt:    "Abgesagt",
+  ersatz:      "Schickt Ersatz",
+  vertretung:  "Kommt in Vertretung",
+};
+
+let tokenClient, accessToken = null;
+
+window.addEventListener("load", () => {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { setStatus("Fehler bei der Anmeldung: " + resp.error, true); return; }
+      accessToken = resp.access_token;
+      await search();
+    }
+  });
+});
+
+function signIn() { tokenClient.requestAccessToken({ prompt: "consent" }); }
+
+function setStatus(text, isErr) {
+  const el = document.getElementById("status");
+  el.textContent = text;
+  el.className = "status" + (isErr ? " err" : "");
+}
+
+function esc(s) { return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+async function search() {
+  setStatus("Suche nach gespeicherten Dateien in deinem Google Drive (App-Datenordner) …");
+  try {
+    const listRes = await fetch(
+      "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&pageSize=50",
+      { headers: { Authorization: "Bearer " + accessToken } }
+    );
+    const list = await listRes.json();
+    const files = list.files || [];
+    if (!files.length) {
+      setStatus("Keine Dateien im App-Datenordner dieses Google-Kontos gefunden.");
+      return;
+    }
+    setStatus(files.length + " Datei(en) gefunden.");
+    const resultEl = document.getElementById("result");
+    resultEl.innerHTML = "";
+    for (const f of files) {
+      const contentRes = await fetch(
+        "https://www.googleapis.com/drive/v3/files/" + f.id + "?alt=media",
+        { headers: { Authorization: "Bearer " + accessToken } }
+      );
+      const text = await contentRes.text();
+      let json = null;
+      try { json = JSON.parse(text); } catch(e) {}
+
+      const block = document.createElement("div");
+      block.className = "file-block";
+      let html = "<h3>📄 " + esc(f.name) + "</h3>";
+      html += "<div class='file-meta'>Zuletzt geändert: " + esc(f.modifiedTime) + "</div>";
+
+      if (json && Array.isArray(json.events)) {
+        if (!json.events.length) {
+          html += "<div class='event-item'>Keine Events in dieser Datei.</div>";
+        }
+        json.events.forEach(ev => {
+          html += "<div class='event-item'><div class='title'>" + esc(ev.title) + (ev.date ? " – " + esc(ev.date) : "") + "</div>";
+          if (ev.guests && ev.guests.length) {
+            html += "<div class='guests'>" + ev.guests.map(g =>
+              esc(g.name) + " (" + esc(STATUS_LABELS[g.status] || g.status) + (g.note ? ", " + esc(g.note) : "") + ")"
+            ).join(" · ") + "</div>";
+          }
+          if (ev.note) html += "<div class='guests'>📝 " + esc(ev.note) + "</div>";
+          html += "</div>";
+        });
+      }
+      html += "<pre>" + esc(text) + "</pre>";
+      block.innerHTML = html;
+      resultEl.appendChild(block);
+    }
+  } catch(e) {
+    setStatus("Fehler beim Abrufen: " + e.message, true);
+  }
+}
+</script>
+</body>
+</html>

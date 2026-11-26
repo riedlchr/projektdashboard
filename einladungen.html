@@ -166,6 +166,7 @@
       <div class="header-right">
         <div class="sync-dot" id="sync-dot"></div>
         <span class="sync-label" id="sync-label">Verbinde…</span>
+        <button class="btn-logout" onclick="saveNow()">💾 Speichern</button>
         <button class="btn-logout" onclick="lockApp()">Sperren</button>
       </div>
     </div>
@@ -212,7 +213,7 @@ const STATUS_LABELS = {
 
 let saveTimer = null;
 let data = { events: [], customPersons: [] };
-let activeTab = "events", addingEvent = false, openEvents = {};
+let activeTab = "events", addingEvent = false, openEvents = {}, archiveOpen = false;
 
 // ── Auth (gemeinsamer Zugangscode) ─────────────────────────────
 window.addEventListener("load", () => {
@@ -274,20 +275,26 @@ async function loadData() {
   }
 }
 
+async function saveData() {
+  setSyncState("busy", "Speichert…");
+  try {
+    const res = await fetch(KV_WRITE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Write-Secret": WRITE_SECRET },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    setSyncState("ok", "Gespeichert · "+new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" }));
+  } catch(e) { setSyncState("err", "Speichern fehlgeschlagen"); }
+}
 function scheduleSave() {
   setSyncState("busy", "Speichert…");
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    try {
-      const res = await fetch(KV_WRITE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Write-Secret": WRITE_SECRET },
-        body: JSON.stringify(data)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setSyncState("ok", "Gespeichert · "+new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" }));
-    } catch(e) { setSyncState("err", "Speichern fehlgeschlagen"); }
-  }, 1000);
+  saveTimer = setTimeout(saveData, 1000);
+}
+function saveNow() {
+  clearTimeout(saveTimer);
+  saveData();
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -343,8 +350,8 @@ function renderEvents() {
     html += '<button class="add-event-btn" onclick="startAddEvent()">+ Neues Event anlegen</button>';
   }
   if (past.length > 0) {
-    html += '<div class="section-label">Archiv</div>';
-    html += renderEventList(past, true);
+    html += '<div class="section-label" style="cursor:pointer" onclick="toggleArchive()">Archiv ('+past.length+') <span class="chevron'+(archiveOpen?' open':'')+'">▼</span></div>';
+    if (archiveOpen) html += renderEventList(past, true);
   }
   html += '</div>';
 
@@ -451,6 +458,7 @@ function renderPersons() {
 // ── Actions ───────────────────────────────────────────────────
 function autoGrow(el) { el.style.height="auto"; el.style.height=el.scrollHeight+"px"; }
 function toggleEvent(id) { openEvents[id]=!openEvents[id]; renderEvents(); }
+function toggleArchive() { archiveOpen=!archiveOpen; renderEvents(); }
 function startAddEvent() { addingEvent=true; renderEvents(); setTimeout(()=>{ const el=document.getElementById("new-event-title"); if(el) el.focus(); },50); }
 function cancelAddEvent() { addingEvent=false; renderEvents(); }
 function confirmAddEvent() {
