@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ehrengäste-Management</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #f0f4f8; font-family: Helvetica, Arial, sans-serif; min-height: 100vh; color: #111; }
@@ -130,6 +129,10 @@
   .login-screen h2 { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 8px; }
   .login-screen p { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
   .btn-login-big { padding: 12px 28px; border-radius: 10px; border: none; background: #b91c1c; color: #fff; cursor: pointer; font-size: 15px; font-weight: 600; font-family: inherit; box-shadow: 0 2px 8px rgba(185,28,28,0.3); }
+  .login-form { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .login-code-input { font-size: 15px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; font-family: inherit; color: #111; outline: none; text-align: center; width: 220px; }
+  .login-code-input:focus { border-color: #b91c1c; }
+  .login-error { font-size: 13px; color: #b91c1c; min-height: 18px; }
 
   .empty { color: #d1d5db; font-size: 13px; padding: 24px 0; text-align: center; width: 100%; }
 
@@ -145,8 +148,12 @@
 <div id="login-screen" class="login-screen" style="display:none">
   <div style="font-size:40px;margin-bottom:16px;">🎖️</div>
   <h2>Ehrengäste-Management</h2>
-  <p>Melde dich mit deinem Google-Konto an.</p>
-  <button class="btn-login-big" onclick="signIn()">🔐 Mit Google anmelden</button>
+  <p>Zugangscode eingeben, um fortzufahren.</p>
+  <div class="login-form">
+    <input type="password" class="login-code-input" id="access-code-input" placeholder="Zugangscode" onkeydown="if(event.key==='Enter')tryUnlock()" />
+    <button class="btn-login-big" onclick="tryUnlock()">🔓 Entsperren</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
 </div>
 
 <div id="app" style="display:none">
@@ -159,7 +166,7 @@
       <div class="header-right">
         <div class="sync-dot" id="sync-dot"></div>
         <span class="sync-label" id="sync-label">Verbinde…</span>
-        <button class="btn-logout" onclick="signOut()">Abmelden</button>
+        <button class="btn-logout" onclick="lockApp()">Sperren</button>
       </div>
     </div>
   </div>
@@ -175,11 +182,10 @@
 </div>
 
 <script>
-const CLIENT_ID = "907159149164-mmpm2dntmhad9qg304dadmkgid5skacb.apps.googleusercontent.com";
-const SCOPE = "https://www.googleapis.com/auth/drive.appdata";
-const FILE_NAME = "einladungen.json";
+const ACCESS_CODE = "CSTPEhrengast";
+const KV_READ = "https://projektdashboard-theta.vercel.app/api/einladungen-read";
 const KV_WRITE = "https://projektdashboard-theta.vercel.app/api/einladungen-write";
-const WRITE_SECRET = "94a9cb21061b9f6374365545ac835a8b67f19e5f17762452";
+const WRITE_SECRET = "caritas-einladungen-2026";
 
 const PREDEFINED = [
   "LH Johanna Mikl-Leitner",
@@ -204,46 +210,46 @@ const STATUS_LABELS = {
   vertretung:  "Kommt in Vertretung",
 };
 
-let tokenClient, accessToken = null, fileId = null, saveTimer = null;
+let saveTimer = null;
 let data = { events: [], customPersons: [] };
 let activeTab = "events", addingEvent = false, openEvents = {};
 
-// ── Auth ──────────────────────────────────────────────────────
+// ── Auth (gemeinsamer Zugangscode) ─────────────────────────────
 window.addEventListener("load", () => {
-  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: () => {} });
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID, scope: SCOPE,
-    login_hint: "mail@christophriedl.at",
-    callback: async (resp) => {
-      if (resp.error) { setSyncState("err", "Fehler"); return; }
-      accessToken = resp.access_token;
-      localStorage.setItem("einladungen_signed_in", "1");
-      showApp();
-      await loadFromDrive();
-    }
-  });
-  if (localStorage.getItem("einladungen_signed_in") === "1") {
-    showApp(); setSyncState("busy", "Verbinde…");
-    tokenClient.requestAccessToken({ prompt: "" });
+  if (localStorage.getItem("einladungen_unlocked") === "1") {
+    showApp();
+    loadData();
   } else {
     document.getElementById("login-screen").style.display = "";
+    setTimeout(() => { const el = document.getElementById("access-code-input"); if (el) el.focus(); }, 50);
   }
 });
 
-function signIn() { tokenClient.requestAccessToken({ prompt: "consent" }); }
-function signOut() {
-  if (accessToken) google.accounts.oauth2.revoke(accessToken);
-  accessToken = null; fileId = null;
-  localStorage.removeItem("einladungen_signed_in");
+function tryUnlock() {
+  const input = document.getElementById("access-code-input");
+  const code = (input.value || "").trim();
+  if (code !== ACCESS_CODE) {
+    document.getElementById("login-error").textContent = "Falscher Zugangscode.";
+    return;
+  }
+  localStorage.setItem("einladungen_unlocked", "1");
+  showApp();
+  loadData();
+}
+function lockApp() {
+  localStorage.removeItem("einladungen_unlocked");
   document.getElementById("app").style.display = "none";
   document.getElementById("login-screen").style.display = "";
+  const input = document.getElementById("access-code-input");
+  if (input) input.value = "";
+  document.getElementById("login-error").textContent = "";
 }
 function showApp() {
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app").style.display = "";
 }
 
-// ── Drive ─────────────────────────────────────────────────────
+// ── Gemeinsamer Speicher (Vercel KV) ────────────────────────────
 function setSyncState(state, label) {
   const dot = document.getElementById("sync-dot");
   const lbl = document.getElementById("sync-label");
@@ -252,49 +258,20 @@ function setSyncState(state, label) {
   lbl.textContent = label;
 }
 
-async function driveReq(method, url, body) {
-  const headers = { Authorization: "Bearer " + accessToken };
-  if (body) headers["Content-Type"] = "application/json";
-  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
-  if (!res.ok) throw new Error(await res.text());
-  return res;
-}
-
-async function loadFromDrive() {
+async function loadData() {
   setSyncState("busy", "Lade…");
   try {
-    const res = await driveReq("GET", "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27"+FILE_NAME+"%27&fields=files(id)");
-    const d = await res.json();
-    if (d.files && d.files.length) {
-      fileId = d.files[0].id;
-      const r = await driveReq("GET", "https://www.googleapis.com/drive/v3/files/"+fileId+"?alt=media");
-      data = await r.json();
-      if (!data.events) data.events = [];
-      if (!data.customPersons) data.customPersons = [];
-      // migrate old status
-      data.events.forEach(ev => (ev.guests||[]).forEach(g => {
-        if (g.status === "vertretung" && STATUS_LABELS[g.status] === "In Vertretung von LHF") g.status = "vertretung";
-      }));
-    } else {
-      data = { events: [], customPersons: [] };
-      fileId = await createFile(data);
-    }
-    setSyncState("ok", "Gespeichert");
+    const r = await fetch(KV_READ);
+    if (!r.ok) throw new Error(await r.text());
+    data = await r.json();
+    if (!data.events) data.events = [];
+    if (!data.customPersons) data.customPersons = [];
+    setSyncState("ok", "Geladen");
     render();
   } catch(e) {
-    setSyncState("err", "Fehler");
+    setSyncState("err", "Fehler beim Laden");
     render();
   }
-}
-
-async function createFile(content) {
-  const meta = { name: FILE_NAME, parents: ["appDataFolder"] };
-  const form = new FormData();
-  form.append("metadata", new Blob([JSON.stringify(meta)], { type: "application/json" }));
-  form.append("file", new Blob([JSON.stringify(content)], { type: "application/json" }));
-  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-    { method: "POST", headers: { Authorization: "Bearer "+accessToken }, body: form });
-  return (await res.json()).id;
 }
 
 function scheduleSave() {
@@ -302,14 +279,12 @@ function scheduleSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try {
-      if (!fileId) fileId = await createFile(data);
-      else await fetch("https://www.googleapis.com/upload/drive/v3/files/"+fileId+"?uploadType=media",
-        { method: "PATCH", headers: { Authorization: "Bearer "+accessToken, "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      await fetch(KV_WRITE, {
+      const res = await fetch(KV_WRITE, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Write-Secret": WRITE_SECRET },
         body: JSON.stringify(data)
       });
+      if (!res.ok) throw new Error(await res.text());
       setSyncState("ok", "Gespeichert · "+new Date().toLocaleTimeString("de-AT", { hour:"2-digit", minute:"2-digit" }));
     } catch(e) { setSyncState("err", "Speichern fehlgeschlagen"); }
   }, 1000);
