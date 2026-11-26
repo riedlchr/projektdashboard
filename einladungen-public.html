@@ -190,20 +190,13 @@ function renderEventList(list, isPastList) {
 
 function renderEvents() {
   const el = document.getElementById("view-events");
-  const sorted = [...data.events].sort((a,b) => {
-    if(a.date&&b.date) return new Date(a.date)-new Date(b.date);
-    if(a.date) return -1; if(b.date) return 1; return 0;
-  });
-  const current = sorted.filter(e => !isPast(e.date));
-  const past    = sorted.filter(e =>  isPast(e.date));
-  let html = '<div class="events">';
-  html += renderEventList(current, false);
-  if (past.length) {
-    html += '<div class="section-label">Archiv</div>';
-    html += renderEventList(past, true);
-  }
-  html += '</div>';
-  el.innerHTML = html;
+  const current = data.events
+    .filter(e => !isPast(e.date))
+    .sort((a,b) => {
+      if(a.date&&b.date) return new Date(a.date)-new Date(b.date);
+      if(a.date) return -1; if(b.date) return 1; return 0;
+    });
+  el.innerHTML = '<div class="events">' + renderEventList(current, false) + '</div>';
 }
 
 function renderPersons() {
